@@ -1,0 +1,191 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+@import 'tailwindcss';
+
+@theme {
+  --color-background: #F8FCFF;
+  --color-background-soft: #E4F5FF;
+  --color-hero-background: #E4F5FF;
+  --color-deep-sky: #69ACD8;
+  --color-main-sky: #92C9EC;
+  --color-bright-cyan: #D9F0FF;
+  --color-light-sky: #D9F0FF;
+  --color-ice-blue: #E4F5FF;
+  --color-surface: #FFFFFF;
+  --color-primary: #92C9EC;
+  --color-primary-hover: #7DBBE3;
+  --color-primary-active: #69ACD8;
+  --color-primary-light: #E4F5FF;
+  --color-accent-sky: #69ACD8;
+  --color-focus-ring: #92C9EC;
+  --color-forest: #24465D;
+  --color-text-primary: #24465D;
+  --color-text-secondary: #718D9E;
+  --color-button-text: #153B52;
+  --color-border: #D5EBF8;
+  --color-muted-surface: #F8FCFF;
+  --color-success: #348765;
+  --color-success-light: #EAF7EF;
+  --color-warning: #B98244;
+  --color-warning-light: #FFF3E3;
+  --color-error: #C75C5C;
+  --color-error-light: #FFF0F0;
+}
+
+:root {
+  font-family:
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  color: var(--color-text-primary);
+  background: var(--color-background);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--color-background);
+    overflow-x: hidden;
+  }
+
+  button,
+  summary,
+  select {
+    cursor: pointer;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  summary:focus-visible {
+    outline: 3px solid var(--color-focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+.hero-grid {
+  background: var(--color-hero-background);
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+
+.demo-map {
+  background-image:
+    linear-gradient(31deg, transparent 47%, rgba(255, 255, 255, 0.68) 48%, rgba(255, 255, 255, 0.68) 51%, transparent 52%),
+    linear-gradient(151deg, transparent 46%, rgba(255, 255, 255, 0.52) 47%, rgba(255, 255, 255, 0.52) 50%, transparent 51%),
+    repeating-linear-gradient(0deg, rgba(122, 135, 148, 0.1) 0 1px, transparent 1px 48px),
+    repeating-linear-gradient(90deg, rgba(122, 135, 148, 0.08) 0 1px, transparent 1px 62px);
+}
+
+.map-road {
+  position: absolute;
+  height: 12px;
+  border: 2px solid rgba(205, 234, 248, 0.9);
+  border-radius: 999px;
+  background: #fff;
+  transform-origin: center;
+}
+
+.road-a {
+  width: 120%;
+  left: -10%;
+  top: 53%;
+  transform: rotate(-12deg);
+}
+
+.road-b {
+  width: 90%;
+  left: 21%;
+  top: 31%;
+  transform: rotate(63deg);
+}
+
+.road-c {
+  width: 74%;
+  left: 2%;
+  top: 74%;
+  transform: rotate(24deg);
+}
+
+.map-river {
+  position: absolute;
+  width: 85%;
+  height: 32px;
+  left: 16%;
+  top: 70%;
+  border-radius: 50%;
+  background: rgba(103, 201, 245, 0.3);
+  transform: rotate(-7deg);
+}
+
+.map-park {
+  position: absolute;
+  border-radius: 45% 55% 60% 40%;
+  background: rgba(184, 232, 255, 0.55);
+}
+
+.park-a {
+  width: 180px;
+  height: 120px;
+  left: 12%;
+  top: 12%;
+  transform: rotate(14deg);
+}
+
+.park-b {
+  width: 220px;
+  height: 140px;
+  right: 7%;
+  bottom: 5%;
+  transform: rotate(-8deg);
+}
+
+.drawer-enter {
+  animation: drawer-in 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.map-list-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #D9F0FF transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
