@@ -1,13 +1,13 @@
 import { CalendarDays, Clock3, Lightbulb, LoaderCircle } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import type { Facility, SearchFilters } from "../types/facility"
+import type { Facility, SearchFilters } from "../../types/facility"
 import {
   WEEKDAYS,
   formatDuration,
   formatHours,
   getAvailability,
   toMinutes,
-} from "../utils/timeUtils"
+} from "../../utils/timeUtils"
 
 interface Props {
   facility: Facility

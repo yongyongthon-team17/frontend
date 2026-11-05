@@ -1,5 +1,5 @@
 import { BusFront, ExternalLink, MapPin } from "lucide-react"
-import type { Facility } from "../types/facility"
+import type { Facility } from "../../types/facility"
 
 interface Props {
   facility: Facility

@@ -1,6 +1,5 @@
 import { Home, Map, Search } from "lucide-react"
-
-type AppScreen = "home" | "search" | "map"
+import type { AppScreen } from "../../types/navigation"
 
 interface Props {
   active: AppScreen
