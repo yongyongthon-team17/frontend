@@ -1,0 +1,66 @@
+import { ArrowRight, Clock3, MapPin } from "lucide-react"
+import type { Facility } from "../types/facility"
+import { formatHours } from "../utils/timeUtils"
+
+interface Props {
+  facility: Facility
+  weekday: number
+  onClick: () => void
+}
+
+export function FacilityCard({ facility, weekday, onClick }: Props) {
+  return (
+    <article
+      className="group flex min-h-[380px] cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-surface transition duration-200 hover:-translate-y-0.5 hover:border-primary"
+      onClick={onClick}
+    >
+      <div className="relative h-[180px] overflow-hidden bg-primary-light">
+        <img
+          src={facility.imageUrl}
+          alt={facility.imageAlt || ""}
+          className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+        />
+        <span className="absolute left-3 top-3 rounded-full bg-success-light px-3 py-1.5 text-[11px] font-extrabold text-success">
+          이용 가능
+        </span>
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col p-5">
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-xs font-bold text-accent-sky">
+                {facility.type}
+              </span>
+              <span className="h-3 w-px bg-border" />
+              <span className="text-xs text-text-secondary">
+                {facility.district}
+              </span>
+            </div>
+            <h3 className="text-lg font-extrabold tracking-[-0.02em] text-forest">
+              {facility.name}
+            </h3>
+          </div>
+        </div>
+        <p className="flex items-start gap-2 text-sm leading-5 text-text-secondary">
+          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-accent-sky" />
+          {facility.address}
+        </p>
+        <div className="mt-4 rounded-xl bg-background-soft px-3 py-2.5">
+          <p className="flex items-center gap-2 text-sm font-semibold text-text-primary">
+            <Clock3 className="h-4 w-4 text-accent-sky" />
+            {formatHours(facility.weeklyHours[weekday])}
+          </p>
+        </div>
+        <button
+          onClick={(event) => {
+            event.stopPropagation()
+            onClick()
+          }}
+          className="mt-auto flex items-center justify-between pt-4 text-sm font-extrabold text-forest transition group-hover:text-accent-sky"
+        >
+          시설 상세 보기 <ArrowRight className="h-4 w-4" />
+        </button>
+      </div>
+    </article>
+  )
+}
