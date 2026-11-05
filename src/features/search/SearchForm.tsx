@@ -1,7 +1,8 @@
 import { Search, X } from "lucide-react"
 import type { FormEvent } from "react"
-import type { SearchFilters } from "../types/facility"
-import { TIME_OPTIONS, WEEKDAYS } from "../utils/timeUtils"
+import { DISTRICTS } from "../../constants/facility"
+import type { SearchFilters } from "../../types/facility"
+import { TIME_OPTIONS, WEEKDAYS } from "../../utils/timeUtils"
 
 interface Props {
   filters: SearchFilters
@@ -76,9 +77,9 @@ export function SearchForm({
             className={selectClass}
           >
             <option value="전체">용인시 전체</option>
-            <option>수지구</option>
-            <option>기흥구</option>
-            <option>처인구</option>
+            {DISTRICTS.map((district) => (
+              <option key={district}>{district}</option>
+            ))}
           </select>
         </label>
         <div className="col-span-12 md:col-span-8 lg:col-span-4">

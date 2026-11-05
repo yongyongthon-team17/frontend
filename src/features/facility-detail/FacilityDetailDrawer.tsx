@@ -7,9 +7,9 @@ import {
   X,
 } from "lucide-react"
 import { useEffect } from "react"
-import type { Facility, SearchFilters } from "../types/facility"
-import { WEEKDAYS, formatHours, getAvailability } from "../utils/timeUtils"
-import { AiRecommendation } from "./AiRecommendation"
+import type { Facility, SearchFilters } from "../../types/facility"
+import { WEEKDAYS, formatHours, getAvailability } from "../../utils/timeUtils"
+import { AiRecommendation } from "../ai/AiRecommendation"
 import { TransportAccessibility } from "./TransportAccessibility"
 
 interface Props {

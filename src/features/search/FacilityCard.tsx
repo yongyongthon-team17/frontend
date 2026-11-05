@@ -1,6 +1,6 @@
 import { ArrowRight, Clock3, MapPin } from "lucide-react"
-import type { Facility } from "../types/facility"
-import { formatHours } from "../utils/timeUtils"
+import type { Facility } from "../../types/facility"
+import { formatHours } from "../../utils/timeUtils"
 
 interface Props {
   facility: Facility

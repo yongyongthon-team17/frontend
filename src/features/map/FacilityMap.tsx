@@ -8,12 +8,13 @@ import {
   SlidersHorizontal,
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { FACILITY_TYPES } from "../../constants/facility"
 import type {
   Facility,
   FacilityTypeFilter,
   SearchFilters,
-} from "../types/facility"
-import { formatHours, WEEKDAYS } from "../utils/timeUtils"
+} from "../../types/facility"
+import { formatHours, WEEKDAYS } from "../../utils/timeUtils"
 
 interface Props {
   facilities: Facility[]
@@ -24,13 +25,6 @@ interface Props {
   onTypeChange: (value: FacilityTypeFilter) => void
   onEditFilters: () => void
 }
-
-const FACILITY_TYPES: FacilityTypeFilter[] = [
-  "전체",
-  "공공도서관",
-  "평생학습관",
-  "생활체육시설",
-]
 
 const position = (facility: Facility) => {
   const lat = facility.latitude ?? 37.27

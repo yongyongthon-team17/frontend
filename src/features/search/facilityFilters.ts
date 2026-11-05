@@ -1,5 +1,5 @@
-import type { Facility, SearchFilters } from "../types/facility"
-import { getAvailability } from "./timeUtils"
+import type { Facility, SearchFilters } from "../../types/facility"
+import { getAvailability } from "../../utils/timeUtils"
 
 export function filterFacilities(
   facilities: Facility[],

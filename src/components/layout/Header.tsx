@@ -1,6 +1,5 @@
+import type { AppScreen } from "../../types/navigation"
 import { Logo } from "./Logo"
-
-type AppScreen = "home" | "search" | "map"
 
 interface Props {
   active: AppScreen
