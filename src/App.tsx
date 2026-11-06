@@ -106,6 +106,7 @@ export default function App() {
           onSelect={setMapSelectedId}
           onOpenFacility={setSelectedFacility}
           onEditFilters={() => setMapFiltersOpen(true)}
+          onGoHome={() => navigate("home")}
         />
       )}
 

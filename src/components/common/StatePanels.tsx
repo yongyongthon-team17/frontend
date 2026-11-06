@@ -1,4 +1,12 @@
-import { AlertTriangle, Building2, LoaderCircle, RotateCcw, Search } from "lucide-react"
+import {
+  AlertTriangle,
+  Building2,
+  House,
+  LoaderCircle,
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
+} from "lucide-react"
 
 export function LoadingPanel() {
   return (
@@ -35,7 +43,14 @@ export function NoSearchPanel({ onSearch }: NoSearchPanelProps) {
   )
 }
 
-export function EmptyPanel() {
+interface EmptyPanelProps {
+  /** 전달하면 '검색 조건 변경' 버튼을 표시한다 */
+  onEditFilters?: () => void
+  /** 전달하면 '홈으로' 버튼을 표시한다 */
+  onGoHome?: () => void
+}
+
+export function EmptyPanel({ onEditFilters, onGoHome }: EmptyPanelProps) {
   return (
     <div className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl border border-border bg-surface px-5 text-center">
       <span className="rounded-2xl bg-primary-light p-4 text-accent-sky">
@@ -47,6 +62,26 @@ export function EmptyPanel() {
       <p className="mt-2 text-sm text-text-secondary">
         요일이나 시간을 변경해 다시 검색해 보세요.
       </p>
+      {(onEditFilters || onGoHome) && (
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          {onEditFilters && (
+            <button
+              onClick={onEditFilters}
+              className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-text-primary hover:bg-primary-hover"
+            >
+              <SlidersHorizontal className="h-4 w-4" /> 검색 조건 변경
+            </button>
+          )}
+          {onGoHome && (
+            <button
+              onClick={onGoHome}
+              className="flex items-center gap-2 rounded-xl border border-border bg-surface px-5 py-3 text-sm font-bold text-text-secondary hover:border-primary hover:text-text-primary"
+            >
+              <House className="h-4 w-4" /> 홈으로
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
