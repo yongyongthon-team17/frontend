@@ -24,6 +24,7 @@ interface Props {
   onSelect: (id: string) => void
   onOpenFacility: (facility: Facility) => void
   onEditFilters: () => void
+  onGoHome: () => void
 }
 
 export function MapPage({
@@ -39,6 +40,7 @@ export function MapPage({
   onSelect,
   onOpenFacility,
   onEditFilters,
+  onGoHome,
 }: Props) {
   if (loading || error || !submitted || !results.length) {
     return (
@@ -57,7 +59,7 @@ export function MapPage({
           ) : !submitted ? (
             <NoSearchPanel onSearch={onSearch} />
           ) : (
-            <EmptyPanel />
+            <EmptyPanel onEditFilters={onEditFilters} onGoHome={onGoHome} />
           )}
         </div>
       </main>
