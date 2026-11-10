@@ -39,6 +39,8 @@ export interface ApiResult<T> {
   meta: ApiMeta
   /** 응답 헤더 X-Request-Id (없으면 meta.requestId) */
   requestId: string | null
+  /** 응답 헤더 Retry-After(초). A04에서 AI 호출 한도에 걸린 항목이 있을 때만 온다. 없으면 null */
+  retryAfterSeconds: number | null
 }
 
 export class ApiError extends Error {
@@ -107,6 +109,8 @@ export interface RequestOptions {
   signal?: AbortSignal
   /** 응답 본문까지 받는 제한 시간(ms). 넘으면 ApiError(code: "TIMEOUT") */
   timeoutMs?: number
+  /** 추가 요청 헤더(예: A04의 X-Client-Id) */
+  headers?: Record<string, string>
 }
 
 const timeoutError = (timeoutMs: number) =>
@@ -134,13 +138,36 @@ function isSuccessBody<T>(body: unknown): body is { data: T; meta: ApiMeta } {
   )
 }
 
-export async function apiGet<T>(
+export function apiGet<T>(
   path: string,
   query?: Record<string, QueryValue>,
-  { signal, timeoutMs = DEFAULT_TIMEOUT_MS }: RequestOptions = {},
+  options: RequestOptions = {},
 ): Promise<ApiResult<T>> {
-  const url = `${BASE_URL}${path}${buildQuery(query)}`
+  return request<T>("GET", `${BASE_URL}${path}${buildQuery(query)}`, options)
+}
 
+/** JSON 본문을 보내는 POST (A04 등). body는 JSON.stringify로 직렬화한다 */
+export function apiPost<T>(
+  path: string,
+  body: unknown,
+  options: RequestOptions = {},
+): Promise<ApiResult<T>> {
+  return request<T>("POST", `${BASE_URL}${path}`, options, body)
+}
+
+/** Retry-After 헤더(초 단위 정수)를 읽는다. 없거나 숫자가 아니면 null */
+function parseRetryAfter(value: string | null): number | null {
+  if (!value) return null
+  const seconds = Number(value)
+  return Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : null
+}
+
+async function request<T>(
+  method: "GET" | "POST",
+  url: string,
+  { signal, timeoutMs = DEFAULT_TIMEOUT_MS, headers }: RequestOptions,
+  requestBody?: unknown,
+): Promise<ApiResult<T>> {
   // 호출 측 signal과 타임아웃을 하나의 내부 controller로 묶는다.
   // 어느 쪽 때문에 중단됐는지 기록해 두고, 사용자 취소는 AbortError, 타임아웃은 TIMEOUT으로 구분한다.
   const controller = new AbortController()
@@ -165,8 +192,13 @@ export async function apiGet<T>(
   try {
     try {
       response = await fetch(url, {
-        method: "GET",
-        headers: { Accept: "application/json" },
+        method,
+        headers: {
+          Accept: "application/json",
+          ...(requestBody === undefined ? {} : { "Content-Type": "application/json" }),
+          ...headers,
+        },
+        body: requestBody === undefined ? undefined : JSON.stringify(requestBody),
         signal: controller.signal,
       })
     } catch (error) {
@@ -223,5 +255,6 @@ export async function apiGet<T>(
     data: body.data,
     meta: { ...body.meta, warnings: body.meta.warnings ?? [] },
     requestId: headerRequestId ?? body.meta.requestId ?? null,
+    retryAfterSeconds: parseRetryAfter(response.headers.get("Retry-After")),
   }
 }
