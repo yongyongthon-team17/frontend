@@ -4,6 +4,7 @@ import type { ImprovementResult } from "./improvementApi"
 import {
   aiErrorMessage,
   coveredPercent,
+  isRateLimited,
   spaceStatusOf,
   toAiResultView,
 } from "./improvementMappers"
@@ -132,15 +133,54 @@ describe("toAiResultView 시나리오", () => {
   })
 })
 
-describe("spaceStatusOf", () => {
-  it("GENERATED가 아니면 사유에 '호출 한도'가 있을 때만 limited", async () => {
+describe("한도 초과 판별(서버 문구가 아닌 신호 기준)", () => {
+  it("생성된 항목은 신호가 있어도 generated", async () => {
+    const item = (await sample("normal")).data.items[0]
+    expect(spaceStatusOf(item, true)).toBe("generated")
+    expect(spaceStatusOf(item, false)).toBe("generated")
+  })
+
+  it("생성되지 않은 항목은 신호가 있으면 limited, 없으면 failed", async () => {
+    const item = (await sample("failed")).data.items[0]
+    expect(spaceStatusOf(item, true)).toBe("limited")
+    expect(spaceStatusOf(item, false)).toBe("failed")
+  })
+
+  it("서버 사유 문구가 바뀌어도 RATE_LIMITED 경고만으로 한도 초과로 본다", async () => {
+    const result = await sample("limit")
+    result.data.items[0].proposalReason = "완전히 다른 문구입니다."
+    result.retryAfterSeconds = null
+    expect(toAiResultView(result).spaces[0].status).toBe("limited")
+  })
+
+  it("Retry-After만 있어도 한도 초과로 본다", async () => {
+    const result = await sample("limit")
+    result.warnings = result.warnings.filter((w) => w.code !== "RATE_LIMITED")
+    result.retryAfterSeconds = 120
+    expect(toAiResultView(result).spaces[0].status).toBe("limited")
+  })
+
+  it("사유 문구에 '호출 한도'가 있어도 신호가 없으면 failed(문구에 의존하지 않음)", async () => {
     const result = await sample("failed")
-    const item = result.data.items[0]
-    expect(spaceStatusOf(item)).toBe("failed")
-    item.proposalReason = "AI 호출 한도를 초과했습니다. 10초 후 다시 시도해 주세요."
-    expect(spaceStatusOf(item)).toBe("limited")
-    item.proposalReason = null
-    expect(spaceStatusOf(item)).toBe("failed")
+    result.data.items[0].proposalReason = "AI 호출 한도를 초과했습니다. 10초 후 다시 시도해 주세요."
+    expect(toAiResultView(result).spaces[0].status).toBe("failed")
+  })
+
+  it("다른 시설의 RATE_LIMITED 경고는 무시한다", async () => {
+    const result = await sample("failed")
+    result.warnings = [
+      { code: "RATE_LIMITED", message: "m", facilityId: "999" },
+    ]
+    expect(toAiResultView(result).spaces[0].status).toBe("failed")
+  })
+
+  it("시설 번호가 없는(null) RATE_LIMITED 경고는 전체에 적용한다", () => {
+    expect(
+      isRateLimited(
+        { warnings: [{ code: "RATE_LIMITED", message: "m", facilityId: null }], retryAfterSeconds: null },
+        "23",
+      ),
+    ).toBe(true)
   })
 })
 

@@ -53,7 +53,24 @@ export interface AiResultView {
   isDemo: boolean
 }
 
-const LIMIT_REASON_MARK = "호출 한도"
+/**
+ * AI 호출 한도에 걸렸는지는 서버 문구가 아니라 신호로 판단한다.
+ * 한도에 걸린 항목이 있으면 서버가 meta.warnings에 RATE_LIMITED(시설 번호 포함)와
+ * 응답 헤더 Retry-After를 함께 준다. 둘 중 하나라도 있으면 한도 초과로 본다.
+ */
+export function isRateLimited(
+  result: Pick<ImprovementResult, "warnings" | "retryAfterSeconds">,
+  facilityId: string,
+): boolean {
+  return (
+    result.retryAfterSeconds !== null ||
+    result.warnings.some(
+      (warning) =>
+        warning.code === "RATE_LIMITED" &&
+        (warning.facilityId === null || warning.facilityId === facilityId),
+    )
+  )
+}
 
 function toDailyHours(item: ImprovementItemDto): DailyHours | undefined {
   const { state, intervals } = item.selectedSchedule
@@ -65,13 +82,21 @@ function toDailyHours(item: ImprovementItemDto): DailyHours | undefined {
   }
 }
 
-export function spaceStatusOf(item: ImprovementItemDto): AiSpaceStatus {
+/** 생성된 항목이 아니면 한도 초과 신호가 있을 때 limited, 없으면 failed */
+export function spaceStatusOf(
+  item: ImprovementItemDto,
+  rateLimited: boolean,
+): AiSpaceStatus {
   if (item.proposalStatus === "GENERATED") return "generated"
-  return item.proposalReason?.includes(LIMIT_REASON_MARK) ? "limited" : "failed"
+  return rateLimited ? "limited" : "failed"
 }
 
-function toSpaceView(item: ImprovementItemDto, showLabel: boolean): AiSpaceView {
-  const status = spaceStatusOf(item)
+function toSpaceView(
+  item: ImprovementItemDto,
+  showLabel: boolean,
+  rateLimited: boolean,
+): AiSpaceView {
+  const status = spaceStatusOf(item, rateLimited)
   const text = item.integratedSuggestion.text
   return {
     key: item.spaceType,
@@ -100,7 +125,9 @@ function toSpaceView(item: ImprovementItemDto, showLabel: boolean): AiSpaceView 
 export function toAiResultView(result: ImprovementResult): AiResultView {
   const { data } = result
   const showLabel = data.items.length > 1
-  const spaces = data.items.map((item) => toSpaceView(item, showLabel))
+  const spaces = data.items.map((item) =>
+    toSpaceView(item, showLabel, isRateLimited(result, item.facility.facilityId)),
+  )
   return {
     spaces,
     disclaimer: data.disclaimer,
