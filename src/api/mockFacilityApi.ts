@@ -1,11 +1,17 @@
 /**
- * VITE_USE_MOCK=true일 때 쓰는 A01·A02 대체 구현. src/data/mockFacilities.ts를 화면 쪽에서 거른다.
+ * VITE_USE_MOCK=true일 때 쓰는 A01·A02·A03 대체 구현. src/data/mockFacilities.ts를 화면 쪽에서 거른다.
  */
 import { MOCK_FACILITIES } from "../data/mockFacilities"
 import { filterFacilities } from "../features/search/facilityFilters"
-import type { FacilityTypeOption, SearchFilters } from "../types/facility"
+import type {
+  DetailCriteria,
+  FacilityTypeOption,
+  SearchFilters,
+} from "../types/facility"
+import { ApiError } from "./client"
 import type { FacilitySearchResult } from "./facilityApi"
-import { mockFacilityToSummary } from "./mappers"
+import type { FacilityDetailResult } from "./facilityDetailApi"
+import { mockFacilityToDetail, mockFacilityToSummary } from "./mappers"
 
 /** mock 유형 → 임시 typeId (실제 DB typeId와 무관) */
 export const MOCK_FACILITY_TYPES: FacilityTypeOption[] = [
@@ -54,4 +60,26 @@ export async function getMockFacilities(
       mockFacilityToSummary(facility, filters.weekday, typeIdOf(facility.type)),
   )
   return { items, warnings: [], unknownSpaceCount: 0, requestId: null }
+}
+
+/** A03 대체. mock id는 "demo-…" 형식이라 숫자 id 검사는 하지 않는다 */
+export async function getMockFacilityDetail(
+  facilityId: string,
+  filters: DetailCriteria,
+  signal?: AbortSignal,
+): Promise<FacilityDetailResult> {
+  await wait(signal)
+  const facility = MOCK_FACILITIES.find((item) => item.id === facilityId)
+  if (!facility) {
+    throw new ApiError({
+      status: 404,
+      code: "FACILITY_NOT_FOUND",
+      message: "시설을 찾을 수 없습니다.",
+    })
+  }
+  return {
+    facility: mockFacilityToDetail(facility, filters),
+    warnings: [],
+    requestId: null,
+  }
 }

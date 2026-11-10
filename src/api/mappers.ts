@@ -3,14 +3,24 @@
  * 특히 요일 코드(화면 0=일, API 0=월) 변환은 toApiDayOfWeek / fromApiDayOfWeek만 쓴다.
  */
 import type {
+  DailyHours,
+  DetailCriteria,
   Facility,
   FacilitySummary,
   SearchFilters,
   SearchOptions,
   SearchWarning,
+  SpaceAvailabilityStatus,
+  SpaceDetail,
 } from "../types/facility"
+import { getAvailability } from "../utils/timeUtils"
 import type { ApiWarning, QueryValue } from "./client"
 import type {
+  FacilityDetailItemDto,
+  FacilityDetailSpaceDto,
+} from "./facilityDetail.types"
+import type {
+  DayScheduleDto,
   FacilitySearchItemDto,
   FacilitySearchOptionsDto,
 } from "./facilitySearch.types"
@@ -131,6 +141,91 @@ export function toSearchWarnings(warnings: ApiWarning[]): SearchWarning[] {
   }))
 }
 
+// ── A03 ──────────────────────────────────────────────
+
+/**
+ * 화면 검색 조건 → A03 쿼리(dayOfWeek·startTime·endTime 모두 필수).
+ * 시간은 A02와 같은 HH:mm으로 보낸다. 명세 초안은 HH였지만 실제 서버는 HH:mm만 받는다.
+ */
+export function toFacilityDetailQuery(
+  filters: DetailCriteria,
+): Record<string, QueryValue> {
+  return {
+    dayOfWeek: toApiDayOfWeek(filters.weekday),
+    startTime: filters.startTime,
+    endTime: filters.endTime,
+  }
+}
+
+/** A03 facilityId는 10진수 양수 문자열이다 */
+export const isValidFacilityId = (facilityId: string) => /^[1-9]\d*$/.test(facilityId)
+
+/** OPEN → 운영 구간, CLOSED → 휴관, UNKNOWN(그 외) → undefined(운영정보 없음, 휴관 아님) */
+function toDailyHours(schedule: DayScheduleDto): DailyHours | undefined {
+  if (schedule.state === "CLOSED") return { closed: true, intervals: [] }
+  if (schedule.state === "OPEN") {
+    return {
+      closed: false,
+      intervals: schedule.intervals.map(({ openTime, closeTime }) => ({
+        open: openTime,
+        close: closeTime,
+      })),
+    }
+  }
+  return undefined
+}
+
+function toWeeklyHours(schedules: DayScheduleDto[]): Record<number, DailyHours> {
+  const weeklyHours: Record<number, DailyHours> = {}
+  for (const schedule of schedules) {
+    const hours = toDailyHours(schedule)
+    if (hours) weeklyHours[fromApiDayOfWeek(schedule.dayOfWeek)] = hours
+  }
+  return weeklyHours
+}
+
+/** 계약 검토 중이라 모르는 값이 오면 UNKNOWN으로 둔다(이용 불가로 단정하지 않음) */
+function toAvailabilityStatus(status: string): SpaceAvailabilityStatus {
+  return status === "AVAILABLE" || status === "UNAVAILABLE" ? status : "UNKNOWN"
+}
+
+function toSpaceDetail(space: FacilityDetailSpaceDto): SpaceDetail {
+  return {
+    spaceType: space.spaceType,
+    spaceLabel: space.spaceLabel,
+    status: toAvailabilityStatus(space.availability.status),
+    requiresReservation: space.availability.requiresReservation,
+    selectedHours: toDailyHours(space.selectedSchedule),
+    unavailableIntervals: (space.availability.unavailableIntervals ?? []).map(
+      ({ startTime, endTime }) => ({ start: startTime, end: endTime }),
+    ),
+    weeklyHours: toWeeklyHours(space.weeklyHours ?? []),
+  }
+}
+
+/**
+ * A03 시설 → 상세 Facility.
+ * 운영시간은 공간별(spaces)로만 둔다. 시설 단위 weeklyHours는 공간이 여럿일 수 있어 비워 둔다.
+ */
+export function toFacilityDetail(dto: FacilityDetailItemDto): Facility {
+  return {
+    id: dto.facilityId,
+    name: dto.name,
+    type: dto.typeName,
+    district: dto.district,
+    address: dto.address,
+    latitude: toNumberOrNull(dto.coordinates?.latitude),
+    longitude: toNumberOrNull(dto.coordinates?.longitude),
+    phone: dto.phone ?? undefined,
+    imageUrl: resolveImageUrl(dto.imageUrl, dto.typeName),
+    amenities: dto.amenities ?? [],
+    updatedAt: dto.dataUpdatedAt ?? undefined,
+    closedDayNote: dto.closedDayNote ?? undefined,
+    weeklyHours: {},
+    spaces: dto.spaces.map(toSpaceDetail),
+  }
+}
+
 // ── mock ─────────────────────────────────────────────
 
 /**
@@ -158,6 +253,38 @@ export function mockFacilityToSummary(
         spaceType: "DEFAULT",
         spaceLabel: "시설 전체",
         intervals: facility.weeklyHours[weekday]?.intervals ?? [],
+      },
+    ],
+  }
+}
+
+/**
+ * mock 상세 데이터 → A03 형태 상세(단일 DEFAULT 공간).
+ * 백엔드 판정이 없으므로 화면 계산(getAvailability)으로 상태를 만든다.
+ */
+export function mockFacilityToDetail(
+  facility: Facility,
+  filters: DetailCriteria,
+): Facility {
+  const selectedHours = facility.weeklyHours[filters.weekday]
+  const availability = getAvailability(selectedHours, filters.startTime, filters.endTime)
+  const status: SpaceAvailabilityStatus =
+    availability.kind === "available"
+      ? "AVAILABLE"
+      : availability.kind === "unknown"
+        ? "UNKNOWN"
+        : "UNAVAILABLE"
+  return {
+    ...facility,
+    spaces: [
+      {
+        spaceType: "DEFAULT",
+        spaceLabel: "시설 전체",
+        status,
+        requiresReservation: false,
+        selectedHours,
+        unavailableIntervals: status === "UNAVAILABLE" ? availability.gaps : [],
+        weeklyHours: facility.weeklyHours,
       },
     ],
   }
