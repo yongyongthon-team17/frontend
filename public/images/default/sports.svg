@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-label="생활체육시설 기본 이미지">
+  <!-- 임시 단색 이미지. 같은 파일명으로 교체한다 (src/api/mappers.ts DEFAULT_IMAGE_EXT 참고) -->
+  <rect width="1200" height="720" fill="#DDF2E3"/>
+  <text x="600" y="380" text-anchor="middle" font-family="sans-serif" font-size="56" font-weight="700" fill="#5B6B7A" opacity="0.55">생활체육시설</text>
+</svg>

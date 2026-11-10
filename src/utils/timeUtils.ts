@@ -1,4 +1,9 @@
-import type { AvailabilityResult, DailyHours, TimeGap } from "../types/facility"
+import type {
+  AvailabilityResult,
+  DailyHours,
+  SpaceHours,
+  TimeGap,
+} from "../types/facility"
 
 export const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"]
 export const TIME_STEP_MINUTES = 30
@@ -21,6 +26,22 @@ export function formatHours(hours?: DailyHours) {
   if (hours.closed) return "휴관"
   if (!hours.intervals.length) return "운영정보 없음"
   return hours.intervals.map(({ open, close }) => `${open}–${close}`).join(", ")
+}
+
+/**
+ * 목록용: 선택 요일에 희망 시간을 충족한 공간별 운영 구간.
+ * 단일 공간(DEFAULT)은 공간명 없이 시간만 표시한다. 예) "열람실 09:00–22:00 · 종합자료실 09:00–18:00"
+ */
+export function formatSpaceHours(spaces: SpaceHours[]) {
+  const parts = spaces
+    .filter((space) => space.intervals.length)
+    .map((space) => {
+      const hours = space.intervals
+        .map(({ open, close }) => `${open}–${close}`)
+        .join(", ")
+      return space.spaceType === "DEFAULT" ? hours : `${space.spaceLabel} ${hours}`
+    })
+  return parts.length ? parts.join(" · ") : "운영정보 없음"
 }
 
 export function getAvailability(
