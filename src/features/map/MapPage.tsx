@@ -5,8 +5,8 @@ import {
   NoSearchPanel,
 } from "../../components/common/StatePanels"
 import type {
-  Facility,
-  FacilityTypeFilter,
+  FacilitySummary,
+  FacilityTypeOption,
   SearchFilters,
 } from "../../types/facility"
 import { FacilityMap } from "./FacilityMap"
@@ -16,13 +16,15 @@ interface Props {
   submitted: boolean
   loading: boolean
   error: boolean
-  results: Facility[]
+  results: FacilitySummary[]
+  /** A01 시설 유형 선택지 */
+  facilityTypes: FacilityTypeOption[]
   onSearch: () => void
   onRetry: () => void
-  onTypeChange: (value: FacilityTypeFilter) => void
+  onTypeChange: (value: SearchFilters["facilityTypeId"]) => void
   selectedId?: string
   onSelect: (id: string) => void
-  onOpenFacility: (facility: Facility) => void
+  onOpenFacility: (facility: FacilitySummary) => void
   onEditFilters: () => void
   onGoHome: () => void
 }
@@ -33,6 +35,7 @@ export function MapPage({
   loading,
   error,
   results,
+  facilityTypes,
   onSearch,
   onRetry,
   onTypeChange,
@@ -70,6 +73,7 @@ export function MapPage({
     <main>
       <FacilityMap
         facilities={results}
+        facilityTypes={facilityTypes}
         filters={applied}
         selectedId={selectedId}
         onSelect={onSelect}

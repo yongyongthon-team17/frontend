@@ -5,7 +5,13 @@ import {
   LoadingPanel,
   NoSearchPanel,
 } from "../../components/common/StatePanels"
-import type { Facility, SearchFilters } from "../../types/facility"
+import { USE_MOCK } from "../../api/client"
+import type {
+  FacilitySummary,
+  FacilityTypeOption,
+  SearchFilters,
+  SearchWarning,
+} from "../../types/facility"
 import type { AppScreen } from "../../types/navigation"
 import { WEEKDAYS } from "../../utils/timeUtils"
 import { FacilityCard } from "./FacilityCard"
@@ -19,12 +25,16 @@ interface Props {
   submitted: boolean
   loading: boolean
   error: boolean
-  results: Facility[]
+  results: FacilitySummary[]
+  /** A02 meta.warnings (WEEKLY_SCHEDULE_ONLY 등) */
+  warnings: SearchWarning[]
+  /** A01 시설 유형 선택지 */
+  facilityTypes: FacilityTypeOption[]
   onSearch: () => void
   onRetry: () => void
-  onTypeChange: (value: SearchFilters["facilityType"]) => void
+  onTypeChange: (value: SearchFilters["facilityTypeId"]) => void
   onNavigate: (screen: AppScreen) => void
-  onOpenFacility: (facility: Facility) => void
+  onOpenFacility: (facility: FacilitySummary) => void
 }
 
 export function SearchPage({
@@ -35,12 +45,18 @@ export function SearchPage({
   loading,
   error,
   results,
+  warnings,
+  facilityTypes,
   onSearch,
   onRetry,
   onTypeChange,
   onNavigate,
   onOpenFacility,
 }: Props) {
+  // mock 모드는 가상 데이터 안내, API 모드는 전체 대상 경고(facilityId=null) 문구를 한 줄로 보여준다
+  const notice = USE_MOCK
+    ? "현재 시설 정보는 제품 시연을 위한 가상 데이터이며 실제 공공시설 정보가 아닙니다."
+    : warnings.find((warning) => warning.facilityId === null)?.message
   const conditionLabel = `${WEEKDAYS[applied.weekday]}요일 ${applied.startTime}–${applied.endTime}`
 
   return (
@@ -92,15 +108,17 @@ export function SearchPage({
         </div>
         <div className="mt-6">
           <FacilityTypeChips
-            value={applied.facilityType}
+            options={facilityTypes}
+            value={applied.facilityTypeId}
             onChange={onTypeChange}
           />
         </div>
-        <div className="mt-5 flex items-center gap-2 rounded-xl bg-primary-light px-4 py-3 text-xs text-text-secondary">
-          <AlertTriangle className="h-4 w-4 shrink-0 text-accent-sky" />
-          현재 시설 정보는 제품 시연을 위한 가상 데이터이며 실제 공공시설 정보가
-          아닙니다.
-        </div>
+        {notice && (
+          <div className="mt-5 flex items-center gap-2 rounded-xl bg-primary-light px-4 py-3 text-xs text-text-secondary">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-accent-sky" />
+            {notice}
+          </div>
+        )}
 
         <div className="mt-6">
           {loading ? (
@@ -117,7 +135,6 @@ export function SearchPage({
                 <FacilityCard
                   key={facility.id}
                   facility={facility}
-                  weekday={applied.weekday}
                   onClick={() => onOpenFacility(facility)}
                 />
               ))}

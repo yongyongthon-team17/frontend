@@ -7,31 +7,77 @@ import {
   MapPin,
   SlidersHorizontal,
 } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
-import { FACILITY_TYPES } from "../../constants/facility"
+import { useEffect, useMemo, useRef, useState } from "react"
 import type {
-  Facility,
-  FacilityTypeFilter,
+  FacilitySummary,
+  FacilityTypeOption,
   SearchFilters,
 } from "../../types/facility"
-import { formatHours, WEEKDAYS } from "../../utils/timeUtils"
+import { formatSpaceHours, WEEKDAYS } from "../../utils/timeUtils"
 
 interface Props {
-  facilities: Facility[]
+  facilities: FacilitySummary[]
+  /** A01 시설 유형 선택지 */
+  facilityTypes: FacilityTypeOption[]
   filters: SearchFilters
   selectedId?: string
   onSelect: (id: string) => void
-  onOpen: (facility: Facility) => void
-  onTypeChange: (value: FacilityTypeFilter) => void
+  onOpen: (facility: FacilitySummary) => void
+  onTypeChange: (value: SearchFilters["facilityTypeId"]) => void
   onEditFilters: () => void
 }
 
-const position = (facility: Facility) => {
-  const lat = facility.latitude ?? 37.27
-  const lng = facility.longitude ?? 127.13
+export interface MapBounds {
+  minLat: number
+  maxLat: number
+  minLng: number
+  maxLng: number
+}
+
+/** 용인시 전체 범위(대략). 결과가 0~1건이면 이 범위를 쓴다 */
+export const YONGIN_BOUNDS: MapBounds = {
+  minLat: 37.09,
+  maxLat: 37.37,
+  minLng: 127.04,
+  maxLng: 127.43,
+}
+
+/** 결과가 한곳에 몰렸을 때 지나치게 확대되지 않도록 하는 최소 폭(도) */
+const MIN_SPAN = 0.02
+/** 결과 범위 바깥 여백 비율(각 변) */
+const PADDING_RATIO = 0.08
+
+/** 현재 결과 좌표의 최소·최대값에 여백을 둔 지도 범위 */
+export function computeBounds(facilities: FacilitySummary[]): MapBounds {
+  const points = facilities.filter(
+    (facility) => facility.latitude !== null && facility.longitude !== null,
+  ) as (FacilitySummary & { latitude: number; longitude: number })[]
+  if (points.length < 2) return YONGIN_BOUNDS
+
+  const lats = points.map((point) => point.latitude)
+  const lngs = points.map((point) => point.longitude)
+  const expand = (min: number, max: number) => {
+    const center = (min + max) / 2
+    const span = Math.max(max - min, MIN_SPAN) * (1 + PADDING_RATIO * 2)
+    return [center - span / 2, center + span / 2] as const
+  }
+  const [minLat, maxLat] = expand(Math.min(...lats), Math.max(...lats))
+  const [minLng, maxLng] = expand(Math.min(...lngs), Math.max(...lngs))
+  return { minLat, maxLat, minLng, maxLng }
+}
+
+// 마커가 화면 가장자리·상단 패널에 가리지 않도록 쓰는 화면 영역(%)
+const AREA = { left: 15, right: 88, top: 13, bottom: 82 }
+
+const position = (facility: FacilitySummary, bounds: MapBounds) => {
+  const lat = facility.latitude ?? (bounds.minLat + bounds.maxLat) / 2
+  const lng = facility.longitude ?? (bounds.minLng + bounds.maxLng) / 2
+  const x = (lng - bounds.minLng) / (bounds.maxLng - bounds.minLng)
+  const y = (bounds.maxLat - lat) / (bounds.maxLat - bounds.minLat)
+  const clamp = (value: number) => Math.min(1, Math.max(0, value))
   return {
-    left: `${Math.min(88, Math.max(15, 16 + ((lng - 127.07) / 0.15) * 65))}%`,
-    top: `${Math.min(82, Math.max(13, 15 + ((37.34 - lat) / 0.12) * 65))}%`,
+    left: `${AREA.left + clamp(x) * (AREA.right - AREA.left)}%`,
+    top: `${AREA.top + clamp(y) * (AREA.bottom - AREA.top)}%`,
   }
 }
 
@@ -71,27 +117,29 @@ function SearchSummary({ filters }: SummaryProps) {
 }
 
 interface ChipsProps {
-  value: FacilityTypeFilter
-  onChange: (value: FacilityTypeFilter) => void
+  options: FacilityTypeOption[]
+  value: SearchFilters["facilityTypeId"]
+  onChange: (value: SearchFilters["facilityTypeId"]) => void
   compact?: boolean
 }
 
-function TypeChips({ value, onChange, compact }: ChipsProps) {
+function TypeChips({ options, value, onChange, compact }: ChipsProps) {
+  const chips = [{ typeId: null, name: "전체" }, ...options]
   return (
     <div
       className={`flex gap-2 ${compact ? "overflow-x-auto pb-1" : "flex-wrap"}`}
     >
-      {FACILITY_TYPES.map((type) => (
+      {chips.map((type) => (
         <button
-          key={type}
-          onClick={() => onChange(type)}
+          key={type.typeId ?? "all"}
+          onClick={() => onChange(type.typeId)}
           className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold transition ${
-            value === type
+            value === type.typeId
               ? "border-primary bg-light-sky text-forest"
               : "border-border bg-white text-text-secondary hover:border-primary"
           }`}
         >
-          {type}
+          {type.name}
         </button>
       ))}
     </div>
@@ -99,8 +147,7 @@ function TypeChips({ value, onChange, compact }: ChipsProps) {
 }
 
 interface ListCardProps {
-  facility: Facility
-  weekday: number
+  facility: FacilitySummary
   selected: boolean
   onSelect: () => void
   onOpen: () => void
@@ -109,7 +156,6 @@ interface ListCardProps {
 
 function MapListCard({
   facility,
-  weekday,
   selected,
   onSelect,
   onOpen,
@@ -126,7 +172,7 @@ function MapListCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] font-bold text-accent-sky">
-            {facility.type} · {facility.district}
+            {facility.typeName} · {facility.district}
           </p>
           <h3 className="mt-1 truncate text-base font-extrabold text-forest">
             {facility.name}
@@ -141,7 +187,7 @@ function MapListCard({
       </p>
       <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-text-primary">
         <Clock3 className="h-3.5 w-3.5 text-accent-sky" />
-        {formatHours(facility.weeklyHours[weekday])}
+        {formatSpaceHours(facility.availableSpaces)}
       </p>
       <button
         onClick={(event) => {
@@ -158,6 +204,7 @@ function MapListCard({
 
 export function FacilityMap({
   facilities,
+  facilityTypes,
   filters,
   selectedId,
   onSelect,
@@ -168,6 +215,7 @@ export function FacilityMap({
   const [sheetExpanded, setSheetExpanded] = useState(false)
   const desktopRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const mobileRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const bounds = useMemo(() => computeBounds(facilities), [facilities])
   const selectedFacility = facilities.find(
     (facility) => facility.id === selectedId,
   )
@@ -207,7 +255,11 @@ export function FacilityMap({
             <SlidersHorizontal className="h-3.5 w-3.5" /> 검색 조건 변경
           </button>
           <div className="mt-5">
-            <TypeChips value={filters.facilityType} onChange={onTypeChange} />
+            <TypeChips
+              options={facilityTypes}
+              value={filters.facilityTypeId}
+              onChange={onTypeChange}
+            />
           </div>
         </div>
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
@@ -222,7 +274,6 @@ export function FacilityMap({
             <MapListCard
               key={facility.id}
               facility={facility}
-              weekday={filters.weekday}
               selected={facility.id === selectedId}
               onSelect={() => onSelect(facility.id)}
               onOpen={() => onOpen(facility)}
@@ -253,7 +304,8 @@ export function FacilityMap({
           <div className="mt-3">
             <TypeChips
               compact
-              value={filters.facilityType}
+              options={facilityTypes}
+              value={filters.facilityTypeId}
               onChange={onTypeChange}
             />
           </div>
@@ -286,7 +338,7 @@ export function FacilityMap({
             <button
               key={facility.id}
               onClick={() => onSelect(facility.id)}
-              style={position(facility)}
+              style={position(facility, bounds)}
               aria-label={`${facility.name} 마커`}
               className={`absolute z-10 -translate-x-1/2 -translate-y-full transition-all ${
                 selected ? "z-20 scale-110" : "hover:scale-105"
@@ -333,7 +385,7 @@ export function FacilityMap({
             </strong>
             {selectedFacility && (
               <span className="mt-1 block truncate text-[11px] text-text-secondary">
-                {formatHours(selectedFacility.weeklyHours[filters.weekday])}
+                {formatSpaceHours(selectedFacility.availableSpaces)}
               </span>
             )}
           </span>
@@ -348,7 +400,6 @@ export function FacilityMap({
             <MapListCard
               key={facility.id}
               facility={facility}
-              weekday={filters.weekday}
               selected={facility.id === selectedId}
               onSelect={() => onSelect(facility.id)}
               onOpen={() => onOpen(facility)}

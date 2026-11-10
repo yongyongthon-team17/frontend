@@ -7,8 +7,10 @@ import { MapFilterModal } from "./features/map/MapFilterModal"
 import { MapPage } from "./features/map/MapPage"
 import { HomePage } from "./features/search/HomePage"
 import { SearchPage } from "./features/search/SearchPage"
+import { toDetailFacility } from "./features/search/detailBridge"
 import { useFacilitySearch } from "./features/search/useFacilitySearch"
-import type { Facility } from "./types/facility"
+import { useSearchOptions } from "./features/search/useSearchOptions"
+import type { Facility, FacilitySummary } from "./types/facility"
 import type { AppScreen } from "./types/navigation"
 
 function getScreenFromHash(): AppScreen {
@@ -48,6 +50,9 @@ export default function App() {
   }
 
   const search = useFacilitySearch({ onComplete: commitNavigation })
+  const { facilityTypes } = useSearchOptions()
+  const openFacility = (facility: FacilitySummary) =>
+    setSelectedFacility(toDetailFacility(facility))
 
   const navigate = (next: AppScreen) => {
     if (next === "map" && !search.submitted) {
@@ -85,11 +90,13 @@ export default function App() {
           loading={search.loading}
           error={search.error}
           results={search.results}
+          warnings={search.warnings}
+          facilityTypes={facilityTypes}
           onSearch={() => search.performSearch("search")}
           onRetry={() => search.retrySearch("search")}
           onTypeChange={search.setType}
           onNavigate={navigate}
-          onOpenFacility={setSelectedFacility}
+          onOpenFacility={openFacility}
         />
       )}
       {screen === "map" && (
@@ -99,12 +106,13 @@ export default function App() {
           loading={search.loading}
           error={search.error}
           results={search.results}
+          facilityTypes={facilityTypes}
           onSearch={() => search.performSearch("map")}
           onRetry={() => search.retrySearch("map")}
           onTypeChange={search.setType}
           selectedId={mapSelectedId}
           onSelect={setMapSelectedId}
-          onOpenFacility={setSelectedFacility}
+          onOpenFacility={openFacility}
           onEditFilters={() => setMapFiltersOpen(true)}
           onGoHome={() => navigate("home")}
         />

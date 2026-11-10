@@ -1,9 +1,14 @@
 import type { Facility, SearchFilters } from "../../types/facility"
 import { getAvailability } from "../../utils/timeUtils"
 
+/**
+ * mock 모드 전용 클라이언트 필터. API 모드에서는 서버(A02)가 거른다.
+ * @param facilityType 선택한 유형명 (null = 전체)
+ */
 export function filterFacilities(
   facilities: Facility[],
   filters: SearchFilters,
+  facilityType: string | null,
 ) {
   const keyword = filters.keyword.trim().toLocaleLowerCase("ko-KR")
   return facilities.filter((facility) => {
@@ -13,8 +18,7 @@ export function filterFacilities(
       facility.address.toLocaleLowerCase("ko-KR").includes(keyword)
     const matchesDistrict =
       filters.district === "전체" || facility.district === filters.district
-    const matchesType =
-      filters.facilityType === "전체" || facility.type === filters.facilityType
+    const matchesType = facilityType === null || facility.type === facilityType
     const availability = getAvailability(
       facility.weeklyHours[filters.weekday],
       filters.startTime,
