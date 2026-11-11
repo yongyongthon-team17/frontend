@@ -7,12 +7,22 @@ import {
   X,
 } from "lucide-react"
 import { useEffect } from "react"
-import type { Facility, SearchFilters } from "../../types/facility"
-import { WEEKDAYS, formatHours, getAvailability } from "../../utils/timeUtils"
+import { USE_MOCK } from "../../api/client"
+import { ErrorPanel, LoadingPanel } from "../../components/common/StatePanels"
+import type {
+  AvailabilityKind,
+  DailyHours,
+  Facility,
+  SearchFilters,
+} from "../../types/facility"
+import { WEEKDAYS, formatHours } from "../../utils/timeUtils"
 import { AiRecommendation } from "../ai/AiRecommendation"
 import { TransportAccessibility } from "./TransportAccessibility"
+import { toStatusKind } from "./spaceStatus"
+import { useFacilityDetail } from "./useFacilityDetail"
 
 interface Props {
+  /** 목록에서 고른 시설(A02 요약). A03 응답이 오기 전 상단 정보에 쓴다 */
   facility: Facility
   filters: SearchFilters
   onClose: () => void
@@ -45,7 +55,25 @@ const statusContent = {
   },
 }
 
-export function FacilityDetailDrawer({ facility, filters, onClose }: Props) {
+/** 운영시간 섹션에서 공간 하나에 해당하는 상태 카드 + 요일별 표 */
+interface HoursBlock {
+  key: string
+  /** 공간이 하나뿐인 DEFAULT(시설 전체)면 이름을 표시하지 않는다 */
+  label: string | null
+  kind: AvailabilityKind
+  /** 미운영 구간·예약 필요 등 추가 안내 */
+  note: string | null
+  weeklyHours: Record<number, DailyHours>
+}
+
+const DEFAULT_NOTICE =
+  "운영시간 기준 판단이며 실제 예약 가능 여부와는 다를 수 있습니다."
+
+export function FacilityDetailDrawer({
+  facility: summaryFacility,
+  filters,
+  onClose,
+}: Props) {
   useEffect(() => {
     const close = (event: KeyboardEvent) => event.key === "Escape" && onClose()
     window.addEventListener("keydown", close)
@@ -57,14 +85,55 @@ export function FacilityDetailDrawer({ facility, filters, onClose }: Props) {
     }
   }, [onClose])
 
-  const hours = facility.weeklyHours[filters.weekday]
-  const availability = getAvailability(
-    hours,
-    filters.startTime,
-    filters.endTime,
-  )
-  const status = statusContent[availability.kind]
-  const StatusIcon = status.icon
+  const detail = useFacilityDetail(summaryFacility.id, filters)
+  const facility = detail.data?.facility ?? summaryFacility
+
+  const spaces = facility.spaces ?? []
+  const showSpaceLabel =
+    spaces.length > 1 || spaces.some((space) => space.spaceType !== "DEFAULT")
+  const blocks: HoursBlock[] = spaces.length
+    ? spaces.map((space) => {
+        const kind = toStatusKind(space, filters.startTime, filters.endTime)
+        const notes = [
+          kind === "partial" && space.unavailableIntervals.length
+            ? `미운영 ${space.unavailableIntervals
+                .map(({ start, end }) => `${start}–${end}`)
+                .join(", ")}`
+            : null,
+          space.requiresReservation ? "예약이 필요한 공간입니다." : null,
+        ].filter((note): note is string => note !== null)
+        return {
+          key: `${space.spaceType}-${space.spaceLabel}`,
+          label: showSpaceLabel ? space.spaceLabel : null,
+          kind,
+          note: notes.length ? notes.join(" · ") : null,
+          weeklyHours: space.weeklyHours,
+        }
+      })
+    : [
+        {
+          key: "none",
+          label: null,
+          kind: "unknown",
+          note: null,
+          weeklyHours: facility.weeklyHours,
+        },
+      ]
+
+  // meta.warnings 중 시설 공통(facilityId=null)이거나 이 시설 대상인 안내만, 중복 없이
+  const warningMessages = [
+    ...new Set(
+      (detail.data?.warnings ?? [])
+        .filter(
+          (warning) =>
+            warning.facilityId === null || warning.facilityId === facility.id,
+        )
+        .map((warning) => warning.message),
+    ),
+  ]
+  const notices = warningMessages.length ? warningMessages : [DEFAULT_NOTICE]
+  const notFound = detail.error?.code === "FACILITY_NOT_FOUND"
+
   return (
     <div
       className="fixed inset-0 z-50"
@@ -85,9 +154,11 @@ export function FacilityDetailDrawer({ facility, filters, onClose }: Props) {
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/55 to-transparent" />
-          <span className="absolute left-6 top-6 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-extrabold text-forest backdrop-blur">
-            시연용 데이터
-          </span>
+          {USE_MOCK && (
+            <span className="absolute left-6 top-6 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-extrabold text-forest backdrop-blur">
+              시연용 데이터
+            </span>
+          )}
           <button
             onClick={onClose}
             aria-label="닫기"
@@ -158,59 +229,108 @@ export function FacilityDetailDrawer({ facility, filters, onClose }: Props) {
                 {filters.endTime}
               </span>
             </div>
-            <div className={`mt-4 rounded-xl border p-4 ${status.className}`}>
-              <div className="flex items-center gap-2 font-extrabold">
-                <StatusIcon className="h-5 w-5" />
-                {status.title}
+            {detail.loading ? (
+              <div className="mt-4">
+                <LoadingPanel />
               </div>
-              <p className="mt-1.5 pl-7 text-xs opacity-80">
-                {status.description}
-              </p>
-            </div>
-            <p className="mt-3 text-[11px] leading-relaxed text-text-secondary/70">
-              운영시간 기준 판단이며 실제 예약 가능 여부와는 다를 수 있습니다.
-            </p>
-            <h4 className="mt-6 text-sm font-extrabold text-forest">
-              요일별 운영시간
-            </h4>
-            <div className="mt-4 overflow-hidden rounded-xl border border-border">
-              {WEEKDAYS.slice(1)
-                .concat(WEEKDAYS[0])
-                .map((day, index) => {
-                  const value = index === 6 ? 0 : index + 1
-                  const selected = filters.weekday === value
+            ) : notFound ? (
+              <div className="mt-4 rounded-xl border border-border bg-background-soft p-4 text-text-secondary">
+                <div className="flex items-center gap-2 font-extrabold">
+                  <AlertCircle className="h-5 w-5" />
+                  시설 정보를 찾을 수 없어요
+                </div>
+                <p className="mt-1.5 pl-7 text-xs opacity-80">
+                  목록에서 시설을 다시 선택해 주세요.
+                </p>
+              </div>
+            ) : detail.error ? (
+              <div className="mt-4">
+                <ErrorPanel onRetry={detail.retry} />
+              </div>
+            ) : (
+              <>
+                {blocks.map((block) => {
+                  const status = statusContent[block.kind]
+                  const StatusIcon = status.icon
                   return (
                     <div
-                      key={day}
-                      className={`flex items-center justify-between gap-3 border-b border-border px-3 py-3 last:border-0 sm:px-4 ${
-                        selected ? "bg-light-sky" : "bg-white"
-                      }`}
+                      key={block.key}
+                      className={`mt-4 rounded-xl border p-4 ${status.className}`}
                     >
-                      <span
-                        className={`text-sm font-bold ${
-                          selected ? "text-forest" : "text-text-secondary"
-                        }`}
-                      >
-                        {day}요일
-                        {selected && (
-                          <small className="ml-1 rounded-full bg-white/80 px-1.5 py-0.5 text-[10px] font-bold">
-                            선택
-                          </small>
-                        )}
-                      </span>
-                      <span
-                        className={`text-right text-xs sm:text-sm ${
-                          facility.weeklyHours[value]?.closed
-                            ? "text-error"
-                            : "text-text-primary"
-                        }`}
-                      >
-                        {formatHours(facility.weeklyHours[value])}
-                      </span>
+                      <div className="flex items-center gap-2 font-extrabold">
+                        <StatusIcon className="h-5 w-5" />
+                        {block.label && `${block.label} · `}
+                        {status.title}
+                      </div>
+                      <p className="mt-1.5 pl-7 text-xs opacity-80">
+                        {status.description}
+                        {block.note && ` (${block.note})`}
+                      </p>
                     </div>
                   )
                 })}
-            </div>
+                {notices.map((notice) => (
+                  <p
+                    key={notice}
+                    className="mt-3 text-[11px] leading-relaxed text-text-secondary/70"
+                  >
+                    {notice}
+                  </p>
+                ))}
+                {blocks.map((block) => (
+                  <div key={block.key}>
+                    <h4 className="mt-6 text-sm font-extrabold text-forest">
+                      요일별 운영시간{block.label && ` · ${block.label}`}
+                    </h4>
+                    <div className="mt-4 overflow-hidden rounded-xl border border-border">
+                      {WEEKDAYS.slice(1)
+                        .concat(WEEKDAYS[0])
+                        .map((day, index) => {
+                          const value = index === 6 ? 0 : index + 1
+                          const selected = filters.weekday === value
+                          return (
+                            <div
+                              key={day}
+                              className={`flex items-center justify-between gap-3 border-b border-border px-3 py-3 last:border-0 sm:px-4 ${
+                                selected ? "bg-light-sky" : "bg-white"
+                              }`}
+                            >
+                              <span
+                                className={`text-sm font-bold ${
+                                  selected
+                                    ? "text-forest"
+                                    : "text-text-secondary"
+                                }`}
+                              >
+                                {day}요일
+                                {selected && (
+                                  <small className="ml-1 rounded-full bg-white/80 px-1.5 py-0.5 text-[10px] font-bold">
+                                    선택
+                                  </small>
+                                )}
+                              </span>
+                              <span
+                                className={`text-right text-xs sm:text-sm ${
+                                  block.weeklyHours[value]?.closed
+                                    ? "text-error"
+                                    : "text-text-primary"
+                                }`}
+                              >
+                                {formatHours(block.weeklyHours[value])}
+                              </span>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </div>
+                ))}
+                {facility.closedDayNote && (
+                  <p className="mt-3 text-[11px] leading-relaxed text-text-secondary/70">
+                    운영 참고: {facility.closedDayNote}
+                  </p>
+                )}
+              </>
+            )}
           </section>
 
           <AiRecommendation facility={facility} filters={filters} />

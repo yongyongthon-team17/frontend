@@ -30,6 +30,24 @@ export interface TransportAccessibility {
   externalMapUrl?: string
 }
 
+/** A03 공간별 이용 가능 여부. 백엔드 availability.status를 그대로 쓴다(최종 판정 기준) */
+export type SpaceAvailabilityStatus = "AVAILABLE" | "UNAVAILABLE" | "UNKNOWN"
+
+/** A03 공간별 상세(선택 시간 판정 + 7일치 운영시간) */
+export interface SpaceDetail {
+  /** GENERAL / READING / DEFAULT */
+  spaceType: string
+  spaceLabel: string
+  status: SpaceAvailabilityStatus
+  requiresReservation: boolean
+  /** 선택 요일 운영 정보. 운영정보를 알 수 없으면(UNKNOWN) undefined — 휴관으로 보지 않는다 */
+  selectedHours?: DailyHours
+  /** 희망 시간 중 운영하지 않는 구간 */
+  unavailableIntervals: TimeGap[]
+  /** 화면 요일(0=일) 기준. 운영정보를 알 수 없는 요일은 키가 없다 */
+  weeklyHours: Record<number, DailyHours>
+}
+
 /**
  * 시설 상세 타입(상세 Drawer·AI·교통 영역에서 사용).
  * 7일치 운영시간·전화·편의시설·교통은 A03·A05 연동에서 채운다.
@@ -51,6 +69,10 @@ export interface Facility {
   updatedAt?: string
   transport?: TransportAccessibility
   weeklyHours: Record<number, DailyHours>
+  /** A03 공간별 운영시간·이용 가능 여부. 상세 응답을 받기 전에는 없다 */
+  spaces?: SpaceDetail[]
+  /** A03 운영 참고 문구(휴관일 등, 원천 문구 그대로) */
+  closedDayNote?: string
 }
 
 /** 선택 요일에 희망 시간을 충족하는 공간과 그 운영 구간 */
@@ -107,6 +129,9 @@ export interface SearchFilters {
   /** null = 전체 */
   facilityTypeId: number | null
 }
+
+/** A03 상세 조회에 쓰는 검색 조건(요일·시간만) */
+export type DetailCriteria = Pick<SearchFilters, "weekday" | "startTime" | "endTime">
 
 export type ViewMode = "list" | "map"
 export type AvailabilityKind = "available" | "partial" | "closed" | "unknown"

@@ -3,12 +3,12 @@ import { MOCK_FACILITIES } from "../../data/mockFacilities"
 import type { Facility, FacilitySummary } from "../../types/facility"
 
 /**
- * 목록 항목 → 상세 Drawer용 Facility.
- * A03(시설 상세) 연동 전까지의 임시 연결이며, A03 담당이 이 파일을 교체한다.
+ * 목록 항목 → 상세 Drawer의 초기 Facility.
+ * Drawer는 이 값으로 상단 정보를 바로 그린 뒤, A03(useFacilityDetail) 응답이 오면 상세로 바꾼다.
+ * id는 A03 facilityId로 그대로 쓰이므로 바꾸지 않는다.
  *
- * - mock 모드: 같은 id의 mock 원본을 그대로 넘긴다(7일치 운영시간·전화·편의시설 유지).
- * - API 모드: A02에 있는 공통 필드만 넘긴다. 상세 필드는 만들어 넣지 않으므로
- *   Drawer는 "운영정보 확인 필요" / "정보 없음"으로 표시된다.
+ * - mock 모드: 같은 id의 mock 원본을 그대로 넘긴다.
+ * - API 모드: A02에 있는 공통 필드만 넘긴다. 전화·편의시설·공간별 운영시간은 A03 응답에서 채운다.
  */
 export function toDetailFacility(summary: FacilitySummary): Facility {
   if (USE_MOCK) {
