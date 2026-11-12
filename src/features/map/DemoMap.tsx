@@ -1,5 +1,6 @@
 import { MapPin } from "lucide-react"
 import { useMemo } from "react"
+import { AVAILABILITY_BADGE } from "../../components/common/AvailabilityBadge"
 import type { FacilitySummary } from "../../types/facility"
 import { withCoords } from "./mapPoints"
 
@@ -113,8 +114,8 @@ export function DemoMap({ facilities, selectedId, onSelect }: Props) {
             <span
               className={`flex h-10 w-10 items-center justify-center rounded-full border-[3px] ${
                 selected
-                  ? "border-primary bg-deep-sky"
-                  : "border-white bg-main-sky"
+                  ? `border-primary ${facility.availabilityStatus === "AVAILABLE" ? "bg-deep-sky" : AVAILABILITY_BADGE[facility.availabilityStatus].markerClassName}`
+                  : `border-white ${AVAILABILITY_BADGE[facility.availabilityStatus].markerClassName}`
               }`}
             >
               <MapPin className="h-5 w-5 text-white" fill="currentColor" />

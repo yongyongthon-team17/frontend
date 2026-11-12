@@ -23,6 +23,8 @@ import { getMockFacilities, getMockSearchOptions } from "./mockFacilityApi"
 
 export interface FacilitySearchResult {
   items: FacilitySummary[]
+  /** 희망 시간에 이용 가능한 시설 수 ("이용 가능한 시설 N곳") */
+  availableCount: number
   warnings: SearchWarning[]
   /** 운영시간을 알 수 없어 판정에서 빠진 공간 수 (화면 표시는 아직 없음) */
   unknownSpaceCount: number
@@ -51,8 +53,12 @@ export async function getFacilities(
     toFacilitySearchQuery(filters),
     { signal },
   )
+  const items = data.items.map(toFacilitySummary)
   return {
-    items: data.items.map(toFacilitySummary),
+    items,
+    availableCount:
+      data.availableCount ??
+      items.filter((item) => item.availabilityStatus === "AVAILABLE").length,
     warnings: toSearchWarnings(meta.warnings),
     unknownSpaceCount: data.unknownSpaceCount,
     requestId,

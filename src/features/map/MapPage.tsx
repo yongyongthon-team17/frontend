@@ -17,6 +17,8 @@ interface Props {
   loading: boolean
   error: boolean
   results: FacilitySummary[]
+  /** 희망 시간에 이용 가능한 시설 수 */
+  availableCount: number
   /** A01 시설 유형 선택지 */
   facilityTypes: FacilityTypeOption[]
   onSearch: () => void
@@ -35,6 +37,7 @@ export function MapPage({
   loading,
   error,
   results,
+  availableCount,
   facilityTypes,
   onSearch,
   onRetry,
@@ -73,6 +76,7 @@ export function MapPage({
     <main>
       <FacilityMap
         facilities={results}
+        availableCount={availableCount}
         facilityTypes={facilityTypes}
         filters={applied}
         selectedId={selectedId}

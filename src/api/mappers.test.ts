@@ -143,6 +143,7 @@ describe("A02 Item → FacilitySummary", () => {
       longitude: 127.1,
       imageUrl: "/images/default/library.svg",
       accessType: "OPEN_HOURS",
+      availabilityStatus: "AVAILABLE",
       availableSpaces: [
         {
           spaceType: "READING",
@@ -151,6 +152,60 @@ describe("A02 Item → FacilitySummary", () => {
         },
       ],
     })
+  })
+
+  it("availabilityStatus를 그대로 옮기고, 이전 서버처럼 필드가 없으면 이용 가능으로 본다", () => {
+    expect(
+      toFacilitySummary({ ...item, availabilityStatus: "UNAVAILABLE" }).availabilityStatus,
+    ).toBe("UNAVAILABLE")
+    expect(
+      toFacilitySummary({ ...item, availabilityStatus: "UNKNOWN" }).availabilityStatus,
+    ).toBe("UNKNOWN")
+    expect(toFacilitySummary({ ...item, availabilityStatus: undefined }).availabilityStatus).toBe(
+      "AVAILABLE",
+    )
+  })
+
+  it("이용 불가·확인 필요 시설도 공간별 운영 구간을 그대로 담는다", () => {
+    const unavailable = toFacilitySummary({
+      ...item,
+      availabilityStatus: "UNAVAILABLE",
+      availableSpaces: [
+        {
+          ...item.availableSpaces[0],
+          selectedSchedule: {
+            dayOfWeek: 1,
+            state: "OPEN",
+            intervals: [{ openTime: "09:00", closeTime: "18:00" }],
+          },
+          availability: {
+            status: "UNAVAILABLE",
+            basis: "WEEKLY_SCHEDULE",
+            requiresReservation: false,
+            unavailableIntervals: [{ startTime: "19:00", endTime: "21:00" }],
+          },
+        },
+      ],
+    })
+    expect(unavailable.availableSpaces[0].intervals).toEqual([{ open: "09:00", close: "18:00" }])
+
+    const unknown = toFacilitySummary({
+      ...item,
+      availabilityStatus: "UNKNOWN",
+      availableSpaces: [
+        {
+          ...item.availableSpaces[0],
+          selectedSchedule: { dayOfWeek: 1, state: "UNKNOWN", intervals: [] },
+          availability: {
+            status: "UNKNOWN",
+            basis: "WEEKLY_SCHEDULE",
+            requiresReservation: false,
+            unavailableIntervals: null,
+          },
+        },
+      ],
+    })
+    expect(unknown.availableSpaces[0].intervals).toEqual([])
   })
 
   it("imageUrl이 null이면 typeName으로 기본 이미지", () => {
