@@ -19,6 +19,10 @@ declare namespace kakao.maps {
   interface MapOptions {
     center: LatLng
     level?: number
+    draggable?: boolean
+    scrollwheel?: boolean
+    disableDoubleClickZoom?: boolean
+    keyboardShortcuts?: boolean
   }
 
   class Map {
@@ -37,6 +41,20 @@ declare namespace kakao.maps {
     ): void
     panTo(latlng: LatLng): void
     relayout(): void
+  }
+
+  interface MarkerOptions {
+    position: LatLng
+    map?: Map
+    title?: string
+    clickable?: boolean
+  }
+
+  class Marker {
+    constructor(options: MarkerOptions)
+    setMap(map: Map | null): void
+    setPosition(position: LatLng): void
+    setTitle(title: string): void
   }
 
   interface CustomOverlayOptions {
