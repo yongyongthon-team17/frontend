@@ -76,7 +76,9 @@ export function AiRecommendation({ facility, filters }: Props) {
 
   const needsRetry =
     state.kind === "complete" &&
-    state.view.spaces.some((space) => space.status !== "generated")
+    state.view.spaces.some(
+      (space) => space.status === "limited" || space.status === "failed",
+    )
   // 공간이 여럿이어도 서버 고정 안내 문장은 한 번만 보여준다
   const limitations =
     state.kind === "complete"
@@ -141,9 +143,7 @@ export function AiRecommendation({ facility, filters }: Props) {
                 운영시간 개선 제안
               </p>
               <p className="mt-2 text-sm leading-6 text-text-secondary">
-                {state.view.unknownSpaceCount > 0
-                  ? "운영정보가 충분하지 않은 공간이 있어 개선 여부를 단정하기 어려워요. 시설에 운영시간을 확인해 보세요."
-                  : "선택한 시간에는 정상적으로 운영하고 있어요. 현재 선택 조건에서는 운영시간 연장이 필요하지 않습니다."}
+                이 시설은 분석할 공간 정보가 없어요. 시설에 운영시간을 확인해 보세요.
               </p>
             </div>
           ) : (

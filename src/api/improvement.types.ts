@@ -27,9 +27,10 @@ export interface ImprovementItemDto {
     intervals: ImprovementTimeIntervalDto[]
   }
   availability: {
-    status: string
+    status: "AVAILABLE" | "UNAVAILABLE" | "UNKNOWN"
     requiresReservation: boolean
-    unavailableIntervals: ImprovementGapDto[]
+    /** 운영시간을 알 수 없는 공간(UNKNOWN)은 null — 휴관으로 보지 않는다 */
+    unavailableIntervals: ImprovementGapDto[] | null
   }
   currentClosingTime: string | null
   proposedClosingTime: string | null

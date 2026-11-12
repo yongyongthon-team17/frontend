@@ -11,12 +11,17 @@ interface Props {
 /** 공간 하나의 분석 결과: 운영시간 비교 + AI 제안(대안 목록, 통합 개선안) 또는 안내 */
 export function SpaceProposalCard({ space, filters }: Props) {
   const hasGap = space.gaps.length > 0
+  const unknown = space.availabilityStatus === "UNKNOWN"
   const proposedHours =
-    space.status !== "generated"
-      ? "제안을 만들지 못했어요"
-      : space.proposedClosingTime && space.firstOpen
-        ? `${space.firstOpen}–${space.proposedClosingTime}`
-        : "종료 연장 외 대안을 검토해 주세요"
+    space.status === "none"
+      ? "제안 없음"
+      : space.status !== "generated"
+        ? "제안을 만들지 못했어요"
+        : space.proposedClosingTime && space.firstOpen
+          ? `${space.firstOpen}–${space.proposedClosingTime}`
+          : space.availabilityStatus === "AVAILABLE"
+            ? "현재 운영시간 유지"
+            : "종료 연장 외 대안을 검토해 주세요"
 
   return (
     <div>
@@ -44,11 +49,13 @@ export function SpaceProposalCard({ space, filters }: Props) {
           <div>
             <p className="text-text-secondary">운영하지 않는 구간</p>
             <p
-              className={`mt-1 font-extrabold ${hasGap ? "text-warning" : "text-success"}`}
+              className={`mt-1 font-extrabold ${unknown ? "text-caution" : hasGap ? "text-warning" : "text-success"}`}
             >
-              {hasGap
-                ? space.gaps.map((gap) => `${gap.start}–${gap.end}`).join(", ")
-                : "없음"}
+              {unknown
+                ? "확인 불가"
+                : hasGap
+                  ? space.gaps.map((gap) => `${gap.start}–${gap.end}`).join(", ")
+                  : "없음"}
             </p>
           </div>
           <div>
@@ -59,6 +66,7 @@ export function SpaceProposalCard({ space, filters }: Props) {
           </div>
         </div>
 
+        {!unknown && (
         <div className="mt-5">
           <div className="mb-2 flex justify-between text-[10px] font-semibold text-text-secondary">
             <span>{filters.startTime}</span>
@@ -76,6 +84,7 @@ export function SpaceProposalCard({ space, filters }: Props) {
             파란색은 희망 시간 중 실제 운영하는 구간입니다.
           </p>
         </div>
+        )}
       </div>
 
       <div className="mt-4">
@@ -105,6 +114,16 @@ export function SpaceProposalCard({ space, filters }: Props) {
                 {space.integratedText}
               </p>
             )}
+          </div>
+        )}
+        {space.status === "none" && (
+          <div className="rounded-xl bg-background-soft p-4">
+            <p className="text-sm font-extrabold text-forest">
+              현재 확인된 개선 사항이 없어요
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-text-secondary">
+              {space.integratedText ?? space.reason}
+            </p>
           </div>
         )}
         {space.status === "limited" && (
