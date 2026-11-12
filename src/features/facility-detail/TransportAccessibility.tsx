@@ -3,13 +3,13 @@ import {
   BusFront,
   ExternalLink,
   LoaderCircle,
-  MapPin,
   RotateCcw,
 } from "lucide-react"
 import { isAbortError } from "../../api/client"
 import type { TransportSummary } from "../../api/transport.types"
 import { getTransportAccessibility } from "../../api/transportApi"
 import type { Facility } from "../../types/facility"
+import { FacilityMiniMap } from "./FacilityMiniMap"
 
 interface Props {
   facility: Facility
@@ -24,7 +24,6 @@ type LoadState =
 export function TransportAccessibility({ facility }: Props) {
   const [state, setState] = useState<LoadState>({ kind: "loading" })
   const [retryCount, setRetryCount] = useState(0)
-  const hasLocation = facility.latitude !== null && facility.longitude !== null
 
   // 시설이 바뀌거나 '다시 시도'를 누르면 A05를 새로 부른다
   useEffect(() => {
@@ -75,29 +74,11 @@ export function TransportAccessibility({ facility }: Props) {
         </div>
       </div>
 
-      <div className="relative mt-4 flex h-40 w-full items-center justify-center overflow-hidden rounded-xl border border-border bg-background-soft">
-        <span className="absolute left-3 top-3 rounded-md border border-border bg-white px-2 py-1 text-[10px] font-bold text-text-secondary">
-          지도 API 연결 전
-        </span>
-        {hasLocation ? (
-          <div className="flex max-w-[85%] flex-col items-center text-center">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-white bg-primary">
-              <MapPin className="h-5 w-5 text-white" fill="currentColor" />
-            </span>
-            <p className="mt-2 truncate text-sm font-extrabold text-forest">
-              {facility.name}
-            </p>
-            <p className="mt-1 text-[10px] text-text-secondary">
-              위치 좌표 {facility.latitude?.toFixed(4)},{" "}
-              {facility.longitude?.toFixed(4)}
-            </p>
-          </div>
-        ) : (
-          <p className="text-xs font-semibold text-text-secondary">
-            위치 정보가 제공되지 않습니다.
-          </p>
-        )}
-      </div>
+      <FacilityMiniMap
+        name={facility.name}
+        latitude={facility.latitude}
+        longitude={facility.longitude}
+      />
 
       <div className="mt-4">
         <div className="mb-2 flex items-center gap-2">
