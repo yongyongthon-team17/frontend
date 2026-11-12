@@ -7,13 +7,16 @@ import {
   MapPin,
   SlidersHorizontal,
 } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type {
   FacilitySummary,
   FacilityTypeOption,
   SearchFilters,
 } from "../../types/facility"
 import { formatSpaceHours, WEEKDAYS } from "../../utils/timeUtils"
+import { DemoMap } from "./DemoMap"
+import { useKakaoMaps } from "./kakaoLoader"
+import { KakaoMapView } from "./KakaoMapView"
 
 interface Props {
   facilities: FacilitySummary[]
@@ -25,60 +28,6 @@ interface Props {
   onOpen: (facility: FacilitySummary) => void
   onTypeChange: (value: SearchFilters["facilityTypeId"]) => void
   onEditFilters: () => void
-}
-
-export interface MapBounds {
-  minLat: number
-  maxLat: number
-  minLng: number
-  maxLng: number
-}
-
-/** 용인시 전체 범위(대략). 결과가 0~1건이면 이 범위를 쓴다 */
-export const YONGIN_BOUNDS: MapBounds = {
-  minLat: 37.09,
-  maxLat: 37.37,
-  minLng: 127.04,
-  maxLng: 127.43,
-}
-
-/** 결과가 한곳에 몰렸을 때 지나치게 확대되지 않도록 하는 최소 폭(도) */
-const MIN_SPAN = 0.02
-/** 결과 범위 바깥 여백 비율(각 변) */
-const PADDING_RATIO = 0.08
-
-/** 현재 결과 좌표의 최소·최대값에 여백을 둔 지도 범위 */
-export function computeBounds(facilities: FacilitySummary[]): MapBounds {
-  const points = facilities.filter(
-    (facility) => facility.latitude !== null && facility.longitude !== null,
-  ) as (FacilitySummary & { latitude: number; longitude: number })[]
-  if (points.length < 2) return YONGIN_BOUNDS
-
-  const lats = points.map((point) => point.latitude)
-  const lngs = points.map((point) => point.longitude)
-  const expand = (min: number, max: number) => {
-    const center = (min + max) / 2
-    const span = Math.max(max - min, MIN_SPAN) * (1 + PADDING_RATIO * 2)
-    return [center - span / 2, center + span / 2] as const
-  }
-  const [minLat, maxLat] = expand(Math.min(...lats), Math.max(...lats))
-  const [minLng, maxLng] = expand(Math.min(...lngs), Math.max(...lngs))
-  return { minLat, maxLat, minLng, maxLng }
-}
-
-// 마커가 화면 가장자리·상단 패널에 가리지 않도록 쓰는 화면 영역(%)
-const AREA = { left: 15, right: 88, top: 13, bottom: 82 }
-
-const position = (facility: FacilitySummary, bounds: MapBounds) => {
-  const lat = facility.latitude ?? (bounds.minLat + bounds.maxLat) / 2
-  const lng = facility.longitude ?? (bounds.minLng + bounds.maxLng) / 2
-  const x = (lng - bounds.minLng) / (bounds.maxLng - bounds.minLng)
-  const y = (bounds.maxLat - lat) / (bounds.maxLat - bounds.minLat)
-  const clamp = (value: number) => Math.min(1, Math.max(0, value))
-  return {
-    left: `${AREA.left + clamp(x) * (AREA.right - AREA.left)}%`,
-    top: `${AREA.top + clamp(y) * (AREA.bottom - AREA.top)}%`,
-  }
 }
 
 interface SummaryProps {
@@ -215,7 +164,7 @@ export function FacilityMap({
   const [sheetExpanded, setSheetExpanded] = useState(false)
   const desktopRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const mobileRefs = useRef<Record<string, HTMLDivElement | null>>({})
-  const bounds = useMemo(() => computeBounds(facilities), [facilities])
+  const kakaoStatus = useKakaoMaps()
   const selectedFacility = facilities.find(
     (facility) => facility.id === selectedId,
   )
@@ -285,7 +234,7 @@ export function FacilityMap({
         </div>
       </aside>
 
-      <div className="demo-map relative h-full min-w-0 overflow-hidden bg-background-soft">
+      <div className="relative h-full min-w-0 overflow-hidden bg-background-soft">
         <div className="absolute inset-x-3 top-3 z-30 rounded-2xl border border-border bg-white p-3 lg:hidden">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-extrabold text-forest">
@@ -311,59 +260,25 @@ export function FacilityMap({
           </div>
         </div>
 
-        <div className="absolute left-5 top-5 z-20 hidden items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-bold text-text-secondary lg:flex">
-          <MapPin className="h-4 w-4 text-accent-sky" />
-          Kakao Maps API 연결 전 · 데모 지도
-        </div>
-        <div className="absolute inset-0 opacity-80">
-          <span className="map-road road-a" />
-          <span className="map-road road-b" />
-          <span className="map-road road-c" />
-          <span className="map-river" />
-          <span className="map-park park-a" />
-          <span className="map-park park-b" />
-          <span className="absolute left-[46%] top-[43%] text-xs font-bold text-text-secondary/70">
-            기흥구
-          </span>
-          <span className="absolute left-[22%] top-[27%] text-xs font-bold text-text-secondary/70">
-            수지구
-          </span>
-          <span className="absolute left-[73%] top-[67%] text-xs font-bold text-text-secondary/70">
-            처인구
-          </span>
-        </div>
-        {facilities.map((facility, index) => {
-          const selected = selectedId === facility.id
-          return (
-            <button
-              key={facility.id}
-              onClick={() => onSelect(facility.id)}
-              style={position(facility, bounds)}
-              aria-label={`${facility.name} 마커`}
-              className={`absolute z-10 -translate-x-1/2 -translate-y-full transition-all ${
-                selected ? "z-20 scale-110" : "hover:scale-105"
-              }`}
-            >
-              {selected && (
-                <span className="absolute bottom-[44px] left-1/2 hidden w-max max-w-[190px] -translate-x-1/2 rounded-lg bg-forest px-3 py-2 text-xs font-bold text-white lg:block">
-                  {facility.name}
-                </span>
-              )}
-              <span
-                className={`flex h-10 w-10 items-center justify-center rounded-full border-[3px] ${
-                  selected
-                    ? "border-primary bg-deep-sky"
-                    : "border-white bg-main-sky"
-                }`}
-              >
-                <MapPin className="h-5 w-5 text-white" fill="currentColor" />
-              </span>
-              <span className="mt-1 inline-flex min-w-5 justify-center rounded-full border border-border bg-white px-1.5 py-0.5 text-[10px] font-extrabold text-forest">
-                {index + 1}
-              </span>
-            </button>
-          )
-        })}
+        {kakaoStatus === "ready" ? (
+          <KakaoMapView
+            facilities={facilities}
+            selectedId={selectedId}
+            onSelect={onSelect}
+          />
+        ) : kakaoStatus === "failed" ? (
+          <DemoMap
+            facilities={facilities}
+            selectedId={selectedId}
+            onSelect={onSelect}
+          />
+        ) : (
+          <div className="absolute inset-0 flex animate-pulse items-center justify-center bg-background-soft">
+            <p className="flex items-center gap-2 text-xs font-bold text-text-secondary">
+              <MapPin className="h-4 w-4 text-accent-sky" /> 지도를 불러오는 중…
+            </p>
+          </div>
+        )}
       </div>
 
       <section
