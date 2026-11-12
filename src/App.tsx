@@ -90,6 +90,7 @@ export default function App() {
           loading={search.loading}
           error={search.error}
           results={search.results}
+          availableCount={search.availableCount}
           warnings={search.warnings}
           facilityTypes={facilityTypes}
           onSearch={() => search.performSearch("search")}
@@ -106,6 +107,7 @@ export default function App() {
           loading={search.loading}
           error={search.error}
           results={search.results}
+          availableCount={search.availableCount}
           facilityTypes={facilityTypes}
           onSearch={() => search.performSearch("map")}
           onRetry={() => search.retrySearch("map")}

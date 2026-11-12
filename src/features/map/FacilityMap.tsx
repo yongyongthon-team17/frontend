@@ -8,6 +8,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { AvailabilityBadge } from "../../components/common/AvailabilityBadge"
 import type {
   FacilitySummary,
   FacilityTypeOption,
@@ -20,6 +21,8 @@ import { KakaoMapView } from "./KakaoMapView"
 
 interface Props {
   facilities: FacilitySummary[]
+  /** 희망 시간에 이용 가능한 시설 수 (A02 availableCount) */
+  availableCount: number
   /** A01 시설 유형 선택지 */
   facilityTypes: FacilityTypeOption[]
   filters: SearchFilters
@@ -127,9 +130,7 @@ function MapListCard({
             {facility.name}
           </h3>
         </div>
-        <span className="shrink-0 rounded-full bg-success-light px-2 py-1 text-[10px] font-bold text-success">
-          이용 가능
-        </span>
+        <AvailabilityBadge status={facility.availabilityStatus} size="sm" />
       </div>
       <p className="mt-3 line-clamp-2 text-xs leading-5 text-text-secondary">
         {facility.address}
@@ -153,6 +154,7 @@ function MapListCard({
 
 export function FacilityMap({
   facilities,
+  availableCount,
   facilityTypes,
   filters,
   selectedId,
@@ -215,7 +217,10 @@ export function FacilityMap({
           <p className="text-sm font-extrabold text-forest">시설 목록</p>
           <p className="text-xs text-text-secondary">
             이용 가능{" "}
-            <strong className="text-forest">{facilities.length}</strong>곳
+            <strong className="text-forest">{availableCount}</strong>곳
+            <span className="ml-1 text-text-secondary/80">
+              (전체 {facilities.length}곳)
+            </span>
           </p>
         </div>
         <div className="map-list-scroll flex-1 space-y-3 overflow-y-auto p-4">
@@ -293,7 +298,7 @@ export function FacilityMap({
         >
           <span className="min-w-0">
             <small className="block text-[11px] font-bold text-accent-sky">
-              이용 가능한 시설 {facilities.length}곳
+              이용 가능한 시설 {availableCount}곳 · 전체 {facilities.length}곳
             </small>
             <strong className="mt-1 block truncate text-sm text-forest">
               {selectedFacility?.name ?? "시설 목록을 확인해보세요"}

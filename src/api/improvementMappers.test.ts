@@ -133,6 +133,57 @@ describe("toAiResultView 시나리오", () => {
   })
 })
 
+describe("이용 시간과 무관한 개선안 응답", () => {
+  it("서버 고정 문구(부족한 점 없음)는 none이며 재시도 대상이 아니다", async () => {
+    const item = (await sample("failed")).data.items[0]
+    const noIssue = {
+      ...item,
+      proposalReason: "현재 확인된 개선 사항이 없습니다.",
+      integratedSuggestion: { status: "UNAVAILABLE" as const, text: "현재 확인된 개선 사항이 없습니다." },
+    }
+    expect(spaceStatusOf(noIssue, false)).toBe("none")
+    // 한도 초과 신호가 있으면 문구와 무관하게 limited
+    expect(spaceStatusOf(noIssue, true)).toBe("limited")
+    // 문장이 없는 UNAVAILABLE은 여전히 실패
+    expect(spaceStatusOf(item, false)).toBe("failed")
+
+    const result = await sample("failed")
+    result.data.items[0] = noIssue
+    const view = toAiResultView(result)
+    expect(view.spaces[0].status).toBe("none")
+    expect(view.spaces[0].integratedText).toBe("현재 확인된 개선 사항이 없습니다.")
+    expect(view.spaces[0].alternatives).toEqual([])
+  })
+
+  it("운영시간을 모르는 공간은 빈 구간이 null이어도 오류 없이 UNKNOWN으로 전달한다", async () => {
+    const result = await sample("normal")
+    result.data.items[0] = {
+      ...result.data.items[0],
+      selectedSchedule: { dayOfWeek: 1, state: "UNKNOWN", intervals: [] },
+      availability: { status: "UNKNOWN", requiresReservation: false, unavailableIntervals: null },
+      currentClosingTime: null,
+      proposedClosingTime: null,
+    }
+    const space = toAiResultView(result).spaces[0]
+    expect(space.availabilityStatus).toBe("UNKNOWN")
+    expect(space.gaps).toEqual([])
+    expect(space.firstOpen).toBeNull()
+  })
+
+  it("희망 시간에 이용 가능한 공간의 개선안은 availabilityStatus가 AVAILABLE이다", async () => {
+    const result = await sample("normal")
+    result.data.items[0] = {
+      ...result.data.items[0],
+      availability: { status: "AVAILABLE", requiresReservation: false, unavailableIntervals: [] },
+      proposedClosingTime: null,
+    }
+    const space = toAiResultView(result).spaces[0]
+    expect(space.availabilityStatus).toBe("AVAILABLE")
+    expect(space.status).toBe("generated")
+    expect(space.proposedClosingTime).toBeNull()
+  })
+})
+
 describe("한도 초과 판별(서버 문구가 아닌 신호 기준)", () => {
   it("생성된 항목은 신호가 있어도 generated", async () => {
     const item = (await sample("normal")).data.items[0]

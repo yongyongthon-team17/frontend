@@ -8,7 +8,11 @@ import { ApiError } from "./client"
 import type { ImprovementItemDto } from "./improvement.types"
 import type { ImprovementResult } from "./improvementApi"
 
-export type AiSpaceStatus = "generated" | "limited" | "failed"
+/**
+ * generated: 제안 생성됨 / none: 서버가 부족한 점을 찾지 못해 LLM 없이 고정 문구를 준 경우(재시도 대상 아님)
+ * limited: 호출 한도 초과 / failed: 생성 실패
+ */
+export type AiSpaceStatus = "generated" | "none" | "limited" | "failed"
 
 export interface AiGap {
   start: string
@@ -22,6 +26,8 @@ export interface AiSpaceView {
   /** 공간이 2개 이상일 때만 이름을 보여준다 */
   showLabel: boolean
   status: AiSpaceStatus
+  /** 희망 시간 기준 공간 이용 상태. UNKNOWN이면 운영시간을 몰라 "운영하지 않는 구간"을 판단할 수 없다 */
+  availabilityStatus: "AVAILABLE" | "UNAVAILABLE" | "UNKNOWN"
   /** 선택 요일 실제 운영시간 문구 ("09:00–18:00", "휴관" 등) */
   operatingHours: string
   /** 첫 운영 구간의 시작 시각. 제안 운영시간 범위를 만들 때 쓴다 */
@@ -41,9 +47,9 @@ export interface AiSpaceView {
 export interface AiResultView {
   spaces: AiSpaceView[]
   disclaimer: string
-  /** 후보 없음: 이미 열려 있거나 상시 개방 */
+  /** 분석할 공간이 하나도 없는 시설 */
   isEmpty: boolean
-  /** 운영시간을 알 수 없어 분석에서 빠진 공간 수 */
+  /** 선택 요일 운영시간을 알 수 없는 공간 수 */
   unknownSpaceCount: number
   /** 한도에 걸린 항목이 하나라도 있으면 true */
   hasLimited: boolean
@@ -82,13 +88,17 @@ function toDailyHours(item: ImprovementItemDto): DailyHours | undefined {
   }
 }
 
-/** 생성된 항목이 아니면 한도 초과 신호가 있을 때 limited, 없으면 failed */
+/**
+ * 생성된 항목이 아니면: 한도 초과 신호가 있으면 limited, 서버 고정 문구(통합 문장 text가 있는 UNAVAILABLE)면 none,
+ * 그 외(문장이 없는 UNAVAILABLE)는 failed
+ */
 export function spaceStatusOf(
   item: ImprovementItemDto,
   rateLimited: boolean,
 ): AiSpaceStatus {
   if (item.proposalStatus === "GENERATED") return "generated"
-  return rateLimited ? "limited" : "failed"
+  if (rateLimited) return "limited"
+  return item.integratedSuggestion.text ? "none" : "failed"
 }
 
 function toSpaceView(
@@ -103,9 +113,10 @@ function toSpaceView(
     spaceLabel: item.spaceLabel,
     showLabel,
     status,
+    availabilityStatus: item.availability.status,
     operatingHours: formatHours(toDailyHours(item)),
     firstOpen: item.selectedSchedule.intervals[0]?.openTime ?? null,
-    gaps: item.availability.unavailableIntervals.map((g) => ({
+    gaps: (item.availability.unavailableIntervals ?? []).map((g) => ({
       start: g.startTime,
       end: g.endTime,
     })),
@@ -114,7 +125,8 @@ function toSpaceView(
     reason: item.proposalReason,
     alternatives: status === "generated" ? item.alternatives : [],
     integratedText:
-      status === "generated" && item.integratedSuggestion.status !== "UNAVAILABLE"
+      status === "none" ||
+      (status === "generated" && item.integratedSuggestion.status !== "UNAVAILABLE")
         ? text
         : null,
     requiresReservation: item.availability.requiresReservation,

@@ -1,6 +1,7 @@
 import { ArrowRight, Clock3, MapPin } from "lucide-react"
 import type { SyntheticEvent } from "react"
 import { FALLBACK_IMAGE_URL } from "../../api/mappers"
+import { AvailabilityBadge } from "../../components/common/AvailabilityBadge"
 import type { FacilitySummary } from "../../types/facility"
 import { formatSpaceHours } from "../../utils/timeUtils"
 
@@ -33,8 +34,8 @@ export function FacilityCard({ facility, onClick }: Props) {
           onError={handleImageError}
           className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
         />
-        <span className="absolute left-3 top-3 rounded-full bg-success-light px-3 py-1.5 text-[11px] font-extrabold text-success">
-          이용 가능
+        <span className="absolute left-3 top-3">
+          <AvailabilityBadge status={facility.availabilityStatus} />
         </span>
       </div>
       <div className="flex min-w-0 flex-1 flex-col p-5">

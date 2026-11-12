@@ -8,6 +8,7 @@ import type {
   FacilityTypeOption,
   SearchFilters,
 } from "../types/facility"
+import { getAvailability } from "../utils/timeUtils"
 import { ApiError } from "./client"
 import type { FacilitySearchResult } from "./facilityApi"
 import type { FacilityDetailResult } from "./facilityDetailApi"
@@ -55,11 +56,32 @@ export async function getMockFacilities(
       ? null
       : (MOCK_FACILITY_TYPES.find((type) => type.typeId === filters.facilityTypeId)
           ?.name ?? null)
-  const items = filterFacilities(MOCK_FACILITIES, filters, facilityType).map(
-    (facility) =>
-      mockFacilityToSummary(facility, filters.weekday, typeIdOf(facility.type)),
-  )
-  return { items, warnings: [], unknownSpaceCount: 0, requestId: null }
+  const rank = { AVAILABLE: 0, UNAVAILABLE: 1, UNKNOWN: 2 } as const
+  const items = filterFacilities(MOCK_FACILITIES, filters, facilityType, true)
+    .map((facility) => {
+      const kind = getAvailability(
+        facility.weeklyHours[filters.weekday],
+        filters.startTime,
+        filters.endTime,
+      ).kind
+      const status =
+        kind === "available" ? "AVAILABLE" : kind === "unknown" ? "UNKNOWN" : "UNAVAILABLE"
+      return mockFacilityToSummary(
+        facility,
+        filters.weekday,
+        typeIdOf(facility.type),
+        status,
+      )
+    })
+    // A02와 같은 정렬: 이용 가능 → 이용 불가 → 확인 필요 (같은 상태 안에서는 원래 순서)
+    .sort((a, b) => rank[a.availabilityStatus] - rank[b.availabilityStatus])
+  return {
+    items,
+    availableCount: items.filter((item) => item.availabilityStatus === "AVAILABLE").length,
+    warnings: [],
+    unknownSpaceCount: 0,
+    requestId: null,
+  }
 }
 
 /** A03 대체. mock id는 "demo-…" 형식이라 숫자 id 검사는 하지 않는다 */

@@ -26,6 +26,8 @@ interface Props {
   loading: boolean
   error: boolean
   results: FacilitySummary[]
+  /** 희망 시간에 이용 가능한 시설 수 (A02 availableCount) */
+  availableCount: number
   /** A02 meta.warnings (WEEKLY_SCHEDULE_ONLY 등) */
   warnings: SearchWarning[]
   /** A01 시설 유형 선택지 */
@@ -45,6 +47,7 @@ export function SearchPage({
   loading,
   error,
   results,
+  availableCount,
   warnings,
   facilityTypes,
   onSearch,
@@ -94,9 +97,14 @@ export function SearchPage({
             <h2 className="mt-1 text-2xl font-extrabold">
               이용 가능한 시설{" "}
               <span className="text-accent-sky">
-                {submitted ? results.length : 0}
+                {submitted ? availableCount : 0}
               </span>
               곳
+              {submitted && results.length > 0 && (
+                <span className="ml-2 text-base font-bold text-text-secondary">
+                  (전체 {results.length}곳)
+                </span>
+              )}
             </h2>
           </div>
           <button
@@ -113,6 +121,12 @@ export function SearchPage({
             onChange={onTypeChange}
           />
         </div>
+        {submitted && !loading && !error && results.length > 0 && availableCount === 0 && (
+          <div className="mt-5 flex items-center gap-2 rounded-xl bg-error-light px-4 py-3 text-xs font-semibold text-error">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            이 시간에 열린 시설이 없어요. 아래 시설은 조건에는 맞지만 선택한 시간에 이용할 수 없어요.
+          </div>
+        )}
         {notice && (
           <div className="mt-5 flex items-center gap-2 rounded-xl bg-primary-light px-4 py-3 text-xs text-text-secondary">
             <AlertTriangle className="h-4 w-4 shrink-0 text-accent-sky" />

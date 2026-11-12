@@ -29,6 +29,9 @@
   --color-warning-light: #FFF3E3;
   --color-error: #C75C5C;
   --color-error-light: #FFF0F0;
+  --color-caution: #8A6A00;
+  --color-caution-light: #FFF6C9;
+  --color-caution-marker: #E8B923;
 }
 
 :root {

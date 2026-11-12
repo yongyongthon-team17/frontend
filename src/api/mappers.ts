@@ -122,6 +122,8 @@ export function toFacilitySummary(item: FacilitySearchItemDto): FacilitySummary 
     longitude: toNumberOrNull(item.coordinates?.longitude),
     imageUrl: resolveImageUrl(item.imageUrl, item.typeName),
     accessType: item.accessType,
+    // 이전 서버는 이용 가능한 시설만 내려줘서 필드가 없으면 이용 가능으로 본다
+    availabilityStatus: item.availabilityStatus ?? "AVAILABLE",
     availableSpaces: item.availableSpaces.map((space) => ({
       spaceType: space.spaceType,
       spaceLabel: space.spaceLabel,
@@ -236,6 +238,7 @@ export function mockFacilityToSummary(
   facility: Facility,
   weekday: number,
   typeId: number,
+  availabilityStatus: SpaceAvailabilityStatus = "AVAILABLE",
 ): FacilitySummary {
   return {
     id: facility.id,
@@ -248,6 +251,7 @@ export function mockFacilityToSummary(
     longitude: facility.longitude,
     imageUrl: facility.imageUrl ?? resolveImageUrl(null, facility.type),
     accessType: "OPEN_HOURS",
+    availabilityStatus,
     availableSpaces: [
       {
         spaceType: "DEFAULT",

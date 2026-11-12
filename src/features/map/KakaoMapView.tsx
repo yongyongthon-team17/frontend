@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react"
+import { AVAILABILITY_BADGE } from "../../components/common/AvailabilityBadge"
 import type { FacilitySummary } from "../../types/facility"
 import { withCoords, type MapPoint } from "./mapPoints"
 
@@ -47,6 +48,12 @@ const PIN_SVG =
 const escapeHtml = (text: string) =>
   text.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`)
 
+/** 이용 가능은 기존 하늘색(선택 시 진한 색), 이용 불가·확인 필요는 상태 색을 유지한다 */
+function markerFill(status: FacilitySummary["availabilityStatus"], selected: boolean) {
+  if (status === "AVAILABLE") return selected ? "bg-deep-sky" : AVAILABILITY_BADGE.AVAILABLE.markerClassName
+  return AVAILABILITY_BADGE[status].markerClassName
+}
+
 /** 마커 DOM 내용을 그린다. 선택 상태가 바뀔 때 해당 마커만 다시 그린다 */
 function paintMarker(element: HTMLButtonElement, point: MapPoint, selected: boolean) {
   const { facility, order } = point
@@ -61,7 +68,7 @@ function paintMarker(element: HTMLButtonElement, point: MapPoint, selected: bool
         : ""
     }
     <span class="flex h-10 w-10 items-center justify-center rounded-full border-[3px] text-white shadow-md ${
-      selected ? "border-primary bg-deep-sky" : "border-white bg-main-sky"
+      selected ? `border-primary ${markerFill(facility.availabilityStatus, true)}` : `border-white ${markerFill(facility.availabilityStatus, false)}`
     }">${PIN_SVG}</span>
     <span class="mt-1 inline-flex min-w-5 justify-center rounded-full border border-border bg-white px-1.5 py-0.5 text-[10px] font-extrabold text-forest">${order}</span>`
 }

@@ -74,6 +74,8 @@ export interface FacilitySearchItemDto {
   imageUrl: string | null
   coordinates: { latitude: number; longitude: number }
   distanceMeters: number | null
+  /** 시설 이용 상태. 이전 버전 서버는 필드가 없고 목록의 모든 시설이 이용 가능이었다 */
+  availabilityStatus?: "AVAILABLE" | "UNAVAILABLE" | "UNKNOWN"
   availableSpaces: SpaceAvailabilityDto[]
 }
 
@@ -82,6 +84,8 @@ export interface FacilitySearchDto {
   criteria: CriteriaDto
   items: FacilitySearchItemDto[]
   totalCount: number
+  /** 희망 시간에 이용 가능한 시설 수. 이전 버전 서버에는 없다 */
+  availableCount?: number
   matchedSpaceCount: number
   unknownSpaceCount: number
 }
