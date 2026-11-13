@@ -13,6 +13,7 @@ import type {
   SpaceAvailabilityStatus,
   SpaceDetail,
 } from "../types/facility"
+import { facilityImages } from "../data/facilityImages"
 import { getAvailability } from "../utils/timeUtils"
 import type { ApiWarning, QueryValue } from "./client"
 import type {
@@ -60,21 +61,34 @@ export const FALLBACK_IMAGE_URL = `${DEFAULT_IMAGE_DIR}/fallback.${DEFAULT_IMAGE
 
 const DEFAULT_IMAGE_PATH = /^\/images\/default\/([A-Za-z0-9_-]+)\.[A-Za-z0-9]+$/
 
+/** 유형별 기본 이미지. 매핑이 없는 유형은 공통 대체 이미지 */
+export function getTypeImageUrl(typeName: string): string {
+  const name = TYPE_IMAGE_NAMES[typeName]
+  return name ? `${DEFAULT_IMAGE_DIR}/${name}.${DEFAULT_IMAGE_EXT}` : FALLBACK_IMAGE_URL
+}
+
 /**
- * 시설 이미지 URL을 정한다.
- * - null이면 typeName으로 기본 이미지를 고르고, 매핑이 없으면 공통 대체 이미지
- * - 백엔드가 주는 `/images/default/<이름>.png`는 프론트 public에서 서빙하며 확장자만 DEFAULT_IMAGE_EXT로 맞춘다
- * - 그 외 URL은 그대로
+ * 시설 이미지 URL을 정한다. 우선순위:
+ * 1. 검증된 시설별 실제 사진(src/data/facilityImages.ts, facilityId가 있을 때)
+ * 2. 백엔드가 주는 실제 이미지 URL(그대로)
+ * 3. 유형별 기본 이미지 — 백엔드의 `/images/default/<이름>.png`는 프론트 public에서 서빙하며
+ *    확장자만 DEFAULT_IMAGE_EXT로 맞추고, null이면 typeName으로 고른다
+ * 4. 공통 대체 이미지(매핑이 없는 유형)
  */
-export function resolveImageUrl(imageUrl: string | null, typeName: string): string {
+export function resolveImageUrl(
+  imageUrl: string | null,
+  typeName: string,
+  facilityId?: string,
+): string {
+  const verified = facilityId ? facilityImages[facilityId] : undefined
+  if (verified) return verified
   if (imageUrl) {
     const match = DEFAULT_IMAGE_PATH.exec(imageUrl)
     return match
       ? `${DEFAULT_IMAGE_DIR}/${match[1]}.${DEFAULT_IMAGE_EXT}`
       : imageUrl
   }
-  const name = TYPE_IMAGE_NAMES[typeName]
-  return name ? `${DEFAULT_IMAGE_DIR}/${name}.${DEFAULT_IMAGE_EXT}` : FALLBACK_IMAGE_URL
+  return getTypeImageUrl(typeName)
 }
 
 // ── A01 ──────────────────────────────────────────────
@@ -120,7 +134,7 @@ export function toFacilitySummary(item: FacilitySearchItemDto): FacilitySummary 
     address: item.address,
     latitude: toNumberOrNull(item.coordinates?.latitude),
     longitude: toNumberOrNull(item.coordinates?.longitude),
-    imageUrl: resolveImageUrl(item.imageUrl, item.typeName),
+    imageUrl: resolveImageUrl(item.imageUrl, item.typeName, item.facilityId),
     accessType: item.accessType,
     // 이전 서버는 이용 가능한 시설만 내려줘서 필드가 없으면 이용 가능으로 본다
     availabilityStatus: item.availabilityStatus ?? "AVAILABLE",
@@ -219,7 +233,7 @@ export function toFacilityDetail(dto: FacilityDetailItemDto): Facility {
     latitude: toNumberOrNull(dto.coordinates?.latitude),
     longitude: toNumberOrNull(dto.coordinates?.longitude),
     phone: dto.phone ?? undefined,
-    imageUrl: resolveImageUrl(dto.imageUrl, dto.typeName),
+    imageUrl: resolveImageUrl(dto.imageUrl, dto.typeName, dto.facilityId),
     amenities: dto.amenities ?? [],
     updatedAt: dto.dataUpdatedAt ?? undefined,
     closedDayNote: dto.closedDayNote ?? undefined,

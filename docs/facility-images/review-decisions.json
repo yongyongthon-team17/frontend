@@ -1,0 +1,26 @@
+{
+ "1": {
+  "decision": "approve",
+  "title": "File:용인중앙도서관.jpg",
+  "note": "육안 확인: 건물 정면 간판 '용인중앙도서관 YONGIN JUNGANG LIBRARY'. 파일 좌표가 시설 좌표에서 32m. CC0."
+ },
+ "9": {
+  "decision": "approve",
+  "title": "File:기흥도서관 전경.jpg",
+  "note": "육안 확인: 건물 외벽 '기흥도서관' 표기. 파일 좌표가 시설 좌표에서 72m. CC0."
+ },
+ "12": {
+  "decision": "approve",
+  "title": "File:흥덕도서관 전면 아래에서 올려다 본 모습.jpg",
+  "note": "육안 확인: 건물 외벽 '흥덕도서관' 표기. 파일 좌표가 시설 좌표에서 26m. CC0."
+ },
+ "17": {
+  "decision": "approve",
+  "title": "File:용인시 죽전도서관.jpg",
+  "note": "육안 확인: 원통형 건물 외벽 '죽전도서관 JUKJEON LIBRARY' 표기. 파일 좌표가 시설 좌표에서 36m. CC0."
+ },
+ "133": {
+  "decision": "reject",
+  "note": "다른 시설: 설명이 '경기도 양주시에 있는 양주꿈나무도서관'(분류 Yangju). 용인 기흥구 꿈나무도서관이 아니다."
+ }
+}

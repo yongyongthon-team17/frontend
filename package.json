@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "format": "oxfmt",
-    "test": "vitest run"
+    "test": "vitest run",
+    "images:collect": "node scripts/collect-facility-images.mjs collect",
+    "images:apply": "node scripts/collect-facility-images.mjs apply"
   },
   "dependencies": {
     "lucide-react": "^1.68.0",
