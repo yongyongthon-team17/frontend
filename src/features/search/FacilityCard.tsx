@@ -1,23 +1,11 @@
 import { ArrowRight, Clock3, MapPin } from "lucide-react"
-import type { SyntheticEvent } from "react"
-import { FALLBACK_IMAGE_URL } from "../../api/mappers"
 import type { FacilitySummary } from "../../types/facility"
+import { handleFacilityImageError } from "../../utils/imageFallback"
 import { formatSpaceHours } from "../../utils/timeUtils"
 
 interface Props {
   facility: FacilitySummary
   onClick: () => void
-}
-
-/** 이미지 로드 실패 시 공통 대체 이미지로, 그것도 실패하면 숨긴다(배경색만 표시) */
-function handleImageError(event: SyntheticEvent<HTMLImageElement>) {
-  const image = event.currentTarget
-  if (image.dataset.fallback === "true") {
-    image.style.visibility = "hidden"
-    return
-  }
-  image.dataset.fallback = "true"
-  image.src = FALLBACK_IMAGE_URL
 }
 
 export function FacilityCard({ facility, onClick }: Props) {
@@ -28,9 +16,10 @@ export function FacilityCard({ facility, onClick }: Props) {
     >
       <div className="relative h-[180px] overflow-hidden bg-primary-light">
         <img
+          key={facility.id}
           src={facility.imageUrl}
           alt=""
-          onError={handleImageError}
+          onError={(event) => handleFacilityImageError(event, facility.typeName)}
           className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
         />
         <span className="absolute left-3 top-3 rounded-full bg-success-light px-3 py-1.5 text-[11px] font-extrabold text-success">

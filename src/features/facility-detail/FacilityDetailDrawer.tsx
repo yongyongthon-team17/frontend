@@ -15,6 +15,7 @@ import type {
   Facility,
   SearchFilters,
 } from "../../types/facility"
+import { handleFacilityImageError } from "../../utils/imageFallback"
 import { WEEKDAYS, formatHours } from "../../utils/timeUtils"
 import { AiRecommendation } from "../ai/AiRecommendation"
 import { TransportAccessibility } from "./TransportAccessibility"
@@ -149,8 +150,10 @@ export function FacilityDetailDrawer({
       <aside className="drawer-enter absolute inset-0 w-full overflow-y-auto bg-surface sm:bottom-2 sm:left-auto sm:right-2 sm:top-2 sm:max-w-[480px] sm:rounded-[20px] sm:border sm:border-border">
         <div className="relative h-60 overflow-hidden bg-primary-light sm:rounded-t-[20px]">
           <img
+            key={facility.id}
             src={facility.imageUrl}
             alt={facility.imageAlt || ""}
+            onError={(event) => handleFacilityImageError(event, facility.type)}
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/55 to-transparent" />
