@@ -99,6 +99,9 @@ export interface FacilitySummary {
   imageUrl: string
   /** 받아만 둔다. 예약 필요 배지는 이번 범위 밖 */
   accessType: AccessType
+  /** A02 시설 이용 상태: 공간 중 하나라도 이용 가능하면 AVAILABLE, 아니면 닫힌 공간이 있으면 UNAVAILABLE, 전부 모르면 UNKNOWN */
+  availabilityStatus: SpaceAvailabilityStatus
+  /** 선택 요일 공간별 운영 구간(이용 불가 공간 포함) */
   availableSpaces: SpaceHours[]
 }
 

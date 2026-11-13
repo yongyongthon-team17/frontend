@@ -88,6 +88,7 @@ export function useFacilitySearch({ onComplete }: Options) {
   const [loading, setLoading] = useState(false)
   const [errorInfo, setErrorInfo] = useState<ApiError | null>(null)
   const [results, setResults] = useState<FacilitySummary[]>([])
+  const [availableCount, setAvailableCount] = useState(0)
   const [warnings, setWarnings] = useState<SearchWarning[]>([])
 
   const controllerRef = useRef<AbortController | null>(null)
@@ -122,6 +123,7 @@ export function useFacilitySearch({ onComplete }: Options) {
         const result = await getFacilities(filters, controller.signal)
         if (seq !== requestSeqRef.current) return
         setResults(result.items)
+        setAvailableCount(result.availableCount)
         setWarnings(result.warnings)
       } catch (error) {
         if (isAbortError(error) || seq !== requestSeqRef.current) return
@@ -131,6 +133,7 @@ export function useFacilitySearch({ onComplete }: Options) {
           apiError,
         )
         setResults([])
+        setAvailableCount(0)
         setWarnings([])
         setErrorInfo(apiError)
       }
@@ -180,6 +183,7 @@ export function useFacilitySearch({ onComplete }: Options) {
     error: errorInfo !== null,
     errorInfo,
     results,
+    availableCount,
     warnings,
     performSearch,
     retrySearch,

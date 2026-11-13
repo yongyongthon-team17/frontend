@@ -1,4 +1,6 @@
+
 import { ArrowRight, Clock3, MapPin } from "lucide-react"
+import { AvailabilityBadge } from "../../components/common/AvailabilityBadge"
 import type { FacilitySummary } from "../../types/facility"
 import { handleFacilityImageError } from "../../utils/imageFallback"
 import { formatSpaceHours } from "../../utils/timeUtils"
@@ -19,13 +21,16 @@ export function FacilityCard({ facility, onClick }: Props) {
           key={facility.id}
           src={facility.imageUrl}
           alt=""
-          onError={(event) => handleFacilityImageError(event, facility.typeName)}
+          onError={(event) =>
+            handleFacilityImageError(event, facility.typeName)
+          }
           className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
         />
-        <span className="absolute left-3 top-3 rounded-full bg-success-light px-3 py-1.5 text-[11px] font-extrabold text-success">
-          이용 가능
+        <span className="absolute left-3 top-3">
+          <AvailabilityBadge status={facility.availabilityStatus} />
         </span>
       </div>
+
       <div className="flex min-w-0 flex-1 flex-col p-5">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
@@ -38,21 +43,25 @@ export function FacilityCard({ facility, onClick }: Props) {
                 {facility.district}
               </span>
             </div>
+
             <h3 className="text-lg font-extrabold tracking-[-0.02em] text-forest">
               {facility.name}
             </h3>
           </div>
         </div>
+
         <p className="flex items-start gap-2 text-sm leading-5 text-text-secondary">
           <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-accent-sky" />
           {facility.address}
         </p>
+
         <div className="mt-4 rounded-xl bg-background-soft px-3 py-2.5">
           <p className="flex items-center gap-2 text-sm font-semibold text-text-primary">
             <Clock3 className="h-4 w-4 text-accent-sky" />
             {formatSpaceHours(facility.availableSpaces)}
           </p>
         </div>
+
         <button
           onClick={(event) => {
             event.stopPropagation()
