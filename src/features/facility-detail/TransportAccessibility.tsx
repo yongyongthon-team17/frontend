@@ -9,6 +9,7 @@ import { isAbortError } from "../../api/client"
 import type { TransportSummary } from "../../api/transport.types"
 import { getTransportAccessibility } from "../../api/transportApi"
 import type { Facility } from "../../types/facility"
+import { BusArrivals } from "./BusArrivals"
 import { FacilityMiniMap } from "./FacilityMiniMap"
 
 interface Props {
@@ -145,6 +146,8 @@ export function TransportAccessibility({ facility }: Props) {
           </ul>
         )}
       </div>
+
+      <BusArrivals facility={facility} />
 
       {facility.transport?.externalMapUrl && (
         <a
