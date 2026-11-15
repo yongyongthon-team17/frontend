@@ -1,4 +1,4 @@
-/**
+ /**
  * 검증된 시설별 실제 사진 (scripts/collect-facility-images.mjs apply 가 생성한다. 직접 고치지 말 것).
  * 출처·라이선스 전체 기록: docs/facility-images/sources.json
  * 사진이 없는 시설은 여기 없고, 매퍼가 백엔드 이미지 → 유형별 기본 이미지 순으로 대신한다.
@@ -20,7 +20,7 @@ export const facilityImages: Record<string, string> = {
   "144": "/images/facilities/144.jpg", // 서천아이파크도서관
   "158": "/images/facilities/158.jpg", // 마북e편한세상작은도서관
   "190": "/images/facilities/190.jpg", // 갤러리북카페작은도서관
-  "201": "/images/facilities/201.jpg", // 힐스테이트구성작은도서관
+  "201": "/images/facilities/201.jpg", // 힐스테이트구성작은도서관
 }
 
 /** 사진 저작자 표시 문구(CC BY·BY-SA는 표시 의무가 있다) */
