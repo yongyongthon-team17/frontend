@@ -1,24 +1,6 @@
 폴더 구조
 
-src/
-├─ main.tsx, App.tsx      # 진입점, 화면 전환과 전역 상태
-├─ api/                   # API 호출 (client → *Api → mappers)
-│  ├─ client.ts           # fetch 래퍼: 타임아웃·취소·오류 envelope 처리
-│  ├─ facilityApi.ts      # A01 검색 선택지, A02 시설 검색
-│  ├─ facilityDetailApi.ts# A03 시설 상세
-│  ├─ improvementApi.ts   # A04 AI 운영시간 개선안
-│  ├─ transportApi.ts     # A05 교통 접근성
-│  ├─ mappers.ts          # 서버 DTO → 화면용 타입 변환, 이미지 우선순위
-│  └─ mock*.ts            # VITE_USE_MOCK=true일 때 쓰는 가짜 API
-├─ features/
-│  ├─ search/             # 홈·검색 화면, 검색 상태 훅
-│  ├─ map/                # 지도 화면 (카카오맵 / 간이 지도)
-│  ├─ facility-detail/    # 시설 상세 Drawer, 교통 접근성
-│  └─ ai/                 # AI 개선안 카드
-├─ components/            # 레이아웃(Header·Footer·BottomNav), 공통 상태 패널
-├─ data/                  # mock 시설, 검증된 시설 사진 목록
-├─ types/                 # 화면에서 쓰는 공통 타입
-└─ utils/                 # 시간 포맷, 이미지 fallback
+<img width="536" height="398" alt="image" src="https://github.com/user-attachments/assets/0ccf85b8-991e-4a0b-90f4-4625e36b95bb" />
 
 1. 화면 전환 (App.tsx)
 라우터 라이브러리 없이 URL 해시로 화면을 바꿉니다: #/home, #/search, #/map.
@@ -69,7 +51,8 @@ mappers.ts가 아래 순서로 이미지를 고릅니다.
 
 검증된 시설별 실제 사진 (src/data/facilityImages.ts)
 시설 유형별 기본 이미지 - 화면에서 이미지 로드에 실패하면 utils/imageFallback.ts가 유형별 기본 이미지 → 공통 대체 이미지 순으로 바꾸고, 모두 실패하면 이미지를 숨깁니다.
-시설 사진 목록은 scripts/collect-facility-images.mjs가 만듭니다. 출처·라이선스 기록은 docs/facility-images/sources.json에 있습니다.
+시설 사진 목록은 scripts/collect-facility-images.mjs가 만듭니다. 
+출처·라이선스 기록은 docs/facility-images/sources.json에 있습니다.
 
 pnpm images:collect   # 후보 수집
 pnpm images:apply     # 검토 결과를 facilityImages.ts에 반영
