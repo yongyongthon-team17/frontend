@@ -4,6 +4,8 @@
  */
 import { apiGet, USE_MOCK } from "./client"
 import type {
+  BusArrivalDto,
+  BusArrivalSummary,
   TransportAccessibilityDto,
   TransportSummary,
 } from "./transport.types"
@@ -50,4 +52,44 @@ export async function getTransportAccessibility(
     { signal },
   )
   return toTransportSummary(data)
+}
+
+/** VITE_USE_MOCK=true일 때 쓰는 가짜 실시간 도착 정보 */
+const MOCK_BUS_ARRIVALS: BusArrivalDto = {
+  facilityId: "mock",
+  status: "AVAILABLE",
+  radiusMeters: 500,
+  stops: [
+    {
+      stopId: "GGB000000001",
+      name: "예시 정류장",
+      distanceMeters: 42,
+      arrivals: [
+        { routeName: "31-1", minutesLeft: 3, stopsLeft: 2 },
+        { routeName: "670", minutesLeft: 8, stopsLeft: 5 },
+      ],
+    },
+    { stopId: "GGB000000002", name: "예시 정류장 건너편", distanceMeters: 77, arrivals: [] },
+  ],
+}
+
+/** A06 시설 주변 실시간 버스 도착 정보 조회 */
+export async function getBusArrivals(
+  facilityId: string,
+  signal?: AbortSignal,
+): Promise<BusArrivalSummary> {
+  const dto = USE_MOCK
+    ? { ...MOCK_BUS_ARRIVALS, facilityId }
+    : (
+        await apiGet<BusArrivalDto>(
+          `/api/v1/facilities/${encodeURIComponent(facilityId)}/bus-arrivals`,
+          undefined,
+          { signal },
+        )
+      ).data
+  return {
+    status: dto.status,
+    radiusMeters: dto.radiusMeters,
+    stops: dto.stops ?? [],
+  }
 }
